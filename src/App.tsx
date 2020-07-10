@@ -23,7 +23,11 @@ const getLensNameForPanasonic = (makerNote: number[], rawData: ArrayBuffer) => {
           && view[j + 2] === keyWord.charCodeAt(2)
           && view[j + 3] === keyWord.charCodeAt(3)) {
             const lensNameArray = view.slice(j + 6 + lensNameOffset, j + 6 + lensNameOffset + lensNameLength);
-            const lensName = (new TextDecoder('UTF-8')).decode(lensNameArray).replace(/\0/g, '');
+            let lensName = '';
+            for (let ci = 0; ci < lensNameArray.length; ci += 1) {
+              lensName += String.fromCharCode(lensNameArray[ci]);
+            }
+            lensName = lensName.replace(/\0/g, '');
             return lensName;
           }
       }
