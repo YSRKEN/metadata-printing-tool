@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Container, Row, Col, Form } from 'react-bootstrap';
 import 'App.css';
 import EXIF from 'exif-js';
@@ -225,6 +225,37 @@ const App = () => {
   const [shutterSpeed, setShutterSpeed] = useState('？');
   const [fNumber, setFNumber] = useState('？');
   const [isoRate, setIsoRate] = useState('？');
+  const [imageUrl, setImageUrl] = useState('');
+  const [imageSrc, setImageSrc] = useState('');
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    if (imageUrl === null || imageUrl === '') {
+      return;
+    }
+    const canvas = canvasRef.current;
+    if (canvas === null) {
+      return;
+    }
+    const ctx = canvas.getContext('2d');
+    if (ctx === null) {
+      return;
+    }
+    const img = new Image();
+    img.src = imageUrl;
+    img.onload = function() {
+      // 保存用の画像データを作成する
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx.drawImage(img, 0, 0, img.width, img.height);
+      const fontSize = img.height / 72;
+      ctx.fillStyle = `rgb(186,192,178)`;
+      ctx.font = `${fontSize}px sans-serif`;
+      const insertedText = `${maker} ${model}, ${lensName}, ${shutterSpeed}, F${fNumber}, ${isoRate}`;
+      ctx.fillText(insertedText, fontSize, img.height - fontSize * 2);
+      setImageSrc(canvas.toDataURL());
+    };
+  }, [imageUrl, maker, model, lensName, shutterSpeed, fNumber, isoRate]);
 
   const onDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.stopPropagation();
@@ -290,6 +321,12 @@ const App = () => {
         }
       };
       reader.readAsArrayBuffer(file);
+
+      const reader2 = new FileReader();
+      reader2.onload = () => {
+        setImageUrl(reader2.result as string);
+      };
+      reader2.readAsDataURL(file);
     }
   };
 
@@ -344,6 +381,12 @@ const App = () => {
               </Form.Group>
             </Form.Row>
           </Form>
+        </Col>
+      </Row>
+      <Row className="my-3">
+        <Col sm={8} className="mx-auto text-center">
+          <canvas ref={canvasRef} className="d-none" />
+          <img src={imageSrc} width={500} className={imageSrc === '' ? 'd-none' : ''} height="auto" alt="変換後のイメージ" />
         </Col>
       </Row>
     </Container>
