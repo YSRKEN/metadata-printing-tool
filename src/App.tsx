@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Container, Row, Col, Form } from 'react-bootstrap';
 import 'App.css';
 import EXIF from 'exif-js';
@@ -225,6 +225,37 @@ const App = () => {
   const [shutterSpeed, setShutterSpeed] = useState('？');
   const [fNumber, setFNumber] = useState('？');
   const [isoRate, setIsoRate] = useState('？');
+  const [imageUrl, setImageUrl] = useState('');
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    if (imageUrl === null || imageUrl === '') {
+      return;
+    }
+    const canvas = canvasRef.current;
+    if (canvas === null) {
+      return;
+    }
+    const ctx = canvas.getContext('2d');
+    if (ctx === null) {
+      return;
+    }
+    const img = new Image();
+    img.src = imageUrl;
+    img.onload = function() {
+      let newWidth = 500;
+      let newHeight = 500;
+      if (img.width > img.height) {
+        newHeight = img.height * 500 / img.width;
+      } else {
+        newWidth = img.width * 500 / img.height;
+      }
+      canvas.width = newWidth + 6;
+      canvas.height = newHeight + 6;
+      ctx.fillRect(0, 0, newWidth + 6, newHeight + 6);
+      ctx.drawImage(img, 3, 3, newWidth, newHeight);
+    };
+  }, [imageUrl, maker, model, lensName, shutterSpeed, fNumber, isoRate]);
 
   const onDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.stopPropagation();
@@ -290,6 +321,12 @@ const App = () => {
         }
       };
       reader.readAsArrayBuffer(file);
+
+      const reader2 = new FileReader();
+      reader2.onload = () => {
+        setImageUrl(reader2.result as string);
+      };
+      reader2.readAsDataURL(file);
     }
   };
 
@@ -344,6 +381,15 @@ const App = () => {
               </Form.Group>
             </Form.Row>
           </Form>
+        </Col>
+      </Row>
+      <Row className="my-3">
+        <Col sm={8} className="mx-auto text-center">
+          <canvas
+            ref={canvasRef}
+            width="500px"
+            height="500px"
+          />
         </Col>
       </Row>
     </Container>
