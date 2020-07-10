@@ -226,6 +226,7 @@ const App = () => {
   const [fNumber, setFNumber] = useState('？');
   const [isoRate, setIsoRate] = useState('？');
   const [imageUrl, setImageUrl] = useState('');
+  const [imageSrc, setImageSrc] = useState('');
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -243,17 +244,16 @@ const App = () => {
     const img = new Image();
     img.src = imageUrl;
     img.onload = function() {
-      let newWidth = 500;
-      let newHeight = 500;
-      if (img.width > img.height) {
-        newHeight = img.height * 500 / img.width;
-      } else {
-        newWidth = img.width * 500 / img.height;
-      }
-      canvas.width = newWidth + 6;
-      canvas.height = newHeight + 6;
-      ctx.fillRect(0, 0, newWidth + 6, newHeight + 6);
-      ctx.drawImage(img, 3, 3, newWidth, newHeight);
+      // 保存用の画像データを作成する
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx.drawImage(img, 0, 0, img.width, img.height);
+      const fontSize = img.height / 72;
+      ctx.fillStyle = `rgb(186,192,178)`;
+      ctx.font = `${fontSize}px sans-serif`;
+      const insertedText = `${maker} ${model}, ${lensName}, ${shutterSpeed}, F${fNumber}, ${isoRate}`;
+      ctx.fillText(insertedText, fontSize, img.height - fontSize * 2);
+      setImageSrc(canvas.toDataURL());
     };
   }, [imageUrl, maker, model, lensName, shutterSpeed, fNumber, isoRate]);
 
@@ -385,11 +385,8 @@ const App = () => {
       </Row>
       <Row className="my-3">
         <Col sm={8} className="mx-auto text-center">
-          <canvas
-            ref={canvasRef}
-            width="500px"
-            height="500px"
-          />
+          <canvas ref={canvasRef} className="d-none" />
+          <img src={imageSrc} width={500} className={imageSrc === '' ? 'd-none' : ''} height="auto" alt="変換後のイメージ" />
         </Col>
       </Row>
     </Container>
