@@ -23,14 +23,14 @@ const getLensNameForPanasonic = (makerNote: number[], rawData: ArrayBuffer) => {
           && view[j + 1] === keyWord.charCodeAt(1)
           && view[j + 2] === keyWord.charCodeAt(2)
           && view[j + 3] === keyWord.charCodeAt(3)) {
-            const lensNameArray = view.slice(j + 6 + lensNameOffset, j + 6 + lensNameOffset + lensNameLength);
-            let lensName = '';
-            for (let ci = 0; ci < lensNameArray.length; ci += 1) {
-              lensName += String.fromCharCode(lensNameArray[ci]);
-            }
-            lensName = lensName.replace(/\0/g, '');
-            return lensName;
+          const lensNameArray = view.slice(j + 6 + lensNameOffset, j + 6 + lensNameOffset + lensNameLength);
+          let lensName = '';
+          for (let ci = 0; ci < lensNameArray.length; ci += 1) {
+            lensName += String.fromCharCode(lensNameArray[ci]);
           }
+          lensName = lensName.replace(/\0/g, '');
+          return lensName;
+        }
       }
     }
   }
@@ -64,9 +64,22 @@ const getIntValueLE = (arr1: Uint8Array) => {
   return arr1[3] * 16777216 + arr1[2] * 65536 + arr1[1] * 256 + arr1[0];
 };
 
-// 指定した配列について、先頭4バイトをリトルエンディアンのSHORT型と仮定して読み取る
-const getShortValueLE = (arr1: Uint8Array) => {
-  return arr1[1] * 256 + arr1[0];
+// 指定した配列について、先頭4バイトをINT型と仮定して読み取る
+const getIntValue = (arr1: Uint8Array, endian: string) => {
+  if (endian === 'LE') {
+    return arr1[3] * 16777216 + arr1[2] * 65536 + arr1[1] * 256 + arr1[0];
+  } else {
+    return arr1[0] * 16777216 + arr1[1] * 65536 + arr1[2] * 256 + arr1[3];
+  }
+};
+
+// 指定した配列について、先頭2バイトをSHORT型と仮定して読み取る
+const getShortValue = (arr1: Uint8Array, endian: string) => {
+  if (endian === 'LE') {
+    return arr1[1] * 256 + arr1[0];
+  } else {
+    return arr1[0] * 256 + arr1[1];
+  }
 };
 
 // 指定した配列について、指定した範囲をASCII型と仮定して読み取る
@@ -88,16 +101,16 @@ interface IFD {
   value: number;  // 値 or 値へのオフセット
 };
 
-const getIfdData = (arr1: Uint8Array, startIndex: number) => {
-  const ifdCount = getShortValueLE(arr1.slice(startIndex, startIndex + 2));
+const getIfdData = (arr1: Uint8Array, startIndex: number, endian: string = 'LE') => {
+  const ifdCount = getShortValue(arr1.slice(startIndex, startIndex + 2), endian);
   const output: IFD[] = [];
   for (let i = 0; i < ifdCount; i += 1) {
     const p = startIndex + 2 + 12 * i;
     output.push({
-      id: getShortValueLE(arr1.slice(p, p + 2)),
-      type: getShortValueLE(arr1.slice(p + 2, p + 4)),
-      count: getIntValueLE(arr1.slice(p + 4, p + 8)),
-      value: getIntValueLE(arr1.slice(p + 8, p + 12))
+      id: getShortValue(arr1.slice(p, p + 2), endian),
+      type: getShortValue(arr1.slice(p + 2, p + 4), endian),
+      count: getIntValue(arr1.slice(p + 4, p + 8), endian),
+      value: getIntValue(arr1.slice(p + 8, p + 12), endian)
     });
   }
   return output;
@@ -123,7 +136,7 @@ const getLensNameForSONY = (rawData: ArrayBuffer) => {
   const zerothIfdPointer = getIntValueLE(view.slice(16, 20));
   const zerothIfdIndex = pointerOffset + zerothIfdPointer;
   const zerothIfdData = getIfdData(view, zerothIfdIndex);
-  
+
   // Exif IFDへのポインターを探す
   const temp = zerothIfdData.filter(tag => tag.id === 34665);
   if (temp.length === 0) {
@@ -143,6 +156,67 @@ const getLensNameForSONY = (rawData: ArrayBuffer) => {
   const lensNameIndex = pointerOffset + lensNamePointer;
   return getAsciiValue(view, lensNameIndex, lensNameLength);
 }
+
+const getLensNameForCanon = (rawData: ArrayBuffer) => {
+  const view = new Uint8Array(rawData);
+  if (!compareArray(view.slice(0, 2), [0xFF, 0xD8])) {
+    // JPEGデータではないと推定されるので弾く
+    return '？？';
+  }
+
+  // APP1を検索する
+  let p = 2;
+  let flg = false;
+  while (p + 2 <= view.length) {
+    if (view[p] !== 0xFF) {
+      // マーカーではないので飛ばす
+      break;
+    }
+    if (view[p + 1] === 0xE1) {
+      // APP1を発見したのでループを抜ける
+      flg = true;
+      break;
+    }
+    const segmentSize = getShortValue(view.slice(p + 2, p + 4), 'BE');
+    p += segmentSize + 2;
+  }
+  if (!flg) {
+    return '？？';
+  }
+
+  // APP1の中身がExifかを確認する
+  if (!compareArrayString(view.slice(p + 4, p + 8), 'Exif')) {
+    // Exifフォーマットではないと推定されるので弾く
+    return '？？';
+  }
+
+  // エンディアンを確認しておく
+  const temp = view.slice(p + 10, p + 12);
+  let endian = 'LE';
+  if (compareArray(temp, [0x49, 0x49])) {
+    endian = 'LE';
+  } else if (compareArray(temp, [0x4D, 0x4D])) {
+    endian = 'BE';
+  } else {
+    return '？？';
+  }
+
+  // 0th IFDを読み取る
+  const zerothIfdPointer = getIntValue(view.slice(p + 14, p + 20), endian);
+  const zerothIfdIndex = p + 2 + 6 + 2 + zerothIfdPointer;
+  const zerothIfdData = getIfdData(view, zerothIfdIndex, endian);
+
+  // レンズ名へのポインターを探す
+  const temp2 = zerothIfdData.filter(tag => tag.id === 42036);
+  if (temp2.length === 0) {
+    return '？？';
+  }
+  const lensNameLength = temp2[0].count;
+  const lensNamePointer = temp2[0].value;
+  const lensNameIndex = p + 2 + 6 + 2 + lensNamePointer;
+  return getAsciiValue(view, lensNameIndex, lensNameLength);
+}
+
 
 const App = () => {
   const [maker, setMaker] = useState('？');
@@ -201,10 +275,13 @@ const App = () => {
                 setLensName(getLensNameForPanasonic(exif['MakerNote'], rawData));
               } else if (rawMaker.includes('SIGMA') && 'undefined' in exif) {
                 setLensName((exif['undefined'] as string).replace(/\0/g, ''));
-              } else if (rawMaker.includes('SONY') && 'MakerNote' in exif) {
+              } else if (rawMaker.includes('SONY')) {
                 setLensName(getLensNameForSONY(rawData));
                 console.log(exif);
-              }else {
+              } else if (rawMaker.includes('Canon')) {
+                setLensName(getLensNameForCanon(rawData));
+                console.log(exif);
+              } else {
                 setLensName('？');
                 console.log(exif);
               }
