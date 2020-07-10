@@ -23,16 +23,13 @@ const App = () => {
     const files: FileList = e.dataTransfer.files;
     if (files.length >= 1) {
       const file = files[0];
-      console.log(`ファイル名：${file.name}`);
-      console.log(`ファイルタイプ：${file.type}`);
-      console.log(`ファイルサイズ(B)：${file.size}`);
       EXIF.getData(file as any, () => {
         const exif: {[key: string]: any} = EXIF.getAllTags(file);
         if ('Make' in exif) {
-          setMaker((exif['Make'] as string).replace('\0', ''));
+          setMaker((exif['Make'] as string).replace(/\0/g, ''));
         }
         if ('Model' in exif) {
-          setModel((exif['Model'] as string).replace('\0', ''));
+          setModel((exif['Model'] as string).replace(/\0/g, ''));
         }
         if ('ExposureTime' in exif) {
           const rawShutterSpeed: Number = exif['ExposureTime'];
@@ -49,7 +46,17 @@ const App = () => {
         if ('ISOSpeedRatings' in exif) {
           setIsoRate(`ISO${exif['ISOSpeedRatings']}`);
         }
-        console.log(exif);
+        
+        // メーカー毎に分析処理が分岐
+        if ('Make' in exif) {
+          const rawMaker = (exif['Make'] as string);
+          if (rawMaker.includes('OLYMPUS')) {
+            setLensName((exif['undefined'] as string).replace(/\0/g, ''));
+          } else {
+            setLensName('？');
+            console.log(exif);
+          }
+        }
       });
     }
   };
