@@ -4,6 +4,7 @@ import 'App.css';
 import EXIF from 'exif-js';
 
 const getLensNameForPanasonic = (makerNote: number[], rawData: ArrayBuffer) => {
+  // MakerNoteにIFDタグが並んでいるので、レンズ名を示す情報を検索する
   const ifdCount = makerNote[12];
   for (let i = 0; i < ifdCount; i += 1) {
     const ifdIndex = 12 + 2 + 12 * i;
@@ -35,6 +36,113 @@ const getLensNameForPanasonic = (makerNote: number[], rawData: ArrayBuffer) => {
   }
   return '？？';
 };
+
+// 配列同士を比較し、完全に一致していた場合はtrue
+const compareArray = (arr1: Uint8Array, arr2: number[]) => {
+  if (arr1.length !== arr2.length) {
+    return false;
+  }
+  for (let i = 0; i < arr1.length; i += 1) {
+    if (arr1[i] !== arr2[i]) {
+      return false;
+    }
+  }
+  return true;
+};
+
+// Unit8の配列と、ASCII文字列とを比較し、完全に一致していた場合はtrue
+const compareArrayString = (arr1: Uint8Array, str1: string) => {
+  const temp: number[] = [];
+  for (let i = 0; i < str1.length; i += 1) {
+    temp.push(str1.codePointAt(i) as number);
+  }
+  return compareArray(arr1, temp);
+}
+
+// 指定した配列について、先頭4バイトをリトルエンディアンのINT型と仮定して読み取る
+const getIntValueLE = (arr1: Uint8Array) => {
+  return arr1[3] * 16777216 + arr1[2] * 65536 + arr1[1] * 256 + arr1[0];
+};
+
+// 指定した配列について、先頭4バイトをリトルエンディアンのSHORT型と仮定して読み取る
+const getShortValueLE = (arr1: Uint8Array) => {
+  return arr1[1] * 256 + arr1[0];
+};
+
+// 指定した配列について、指定した範囲をASCII型と仮定して読み取る
+const getAsciiValue = (arr1: Uint8Array, start: number, length: number) => {
+  let output = '';
+  for (let ci = 0; ci < length; ci += 1) {
+    output += String.fromCharCode(arr1[start + ci]);
+  }
+  output = output.replace(/\0/g, '');
+  return output;
+};
+
+
+// IFDタグのデータを読み取る
+interface IFD {
+  id: number;     //タグのID
+  type: number;   // 値の種類
+  count: number;  // 値の数
+  value: number;  // 値 or 値へのオフセット
+};
+
+const getIfdData = (arr1: Uint8Array, startIndex: number) => {
+  const ifdCount = getShortValueLE(arr1.slice(startIndex, startIndex + 2));
+  const output: IFD[] = [];
+  for (let i = 0; i < ifdCount; i += 1) {
+    const p = startIndex + 2 + 12 * i;
+    output.push({
+      id: getShortValueLE(arr1.slice(p, p + 2)),
+      type: getShortValueLE(arr1.slice(p + 2, p + 4)),
+      count: getIntValueLE(arr1.slice(p + 4, p + 8)),
+      value: getIntValueLE(arr1.slice(p + 8, p + 12))
+    });
+  }
+  return output;
+};
+
+const getLensNameForSONY = (rawData: ArrayBuffer) => {
+  // MakerNoteにすら情報が無いので、地道に生データをデコードする
+  const view = new Uint8Array(rawData);
+  if (!compareArray(view.slice(0, 4), [0xFF, 0xD8, 0xFF, 0xE1])) {
+    // JPEGデータではないと推定されるので弾く
+    return '？？';
+  }
+  if (!compareArrayString(view.slice(6, 10), 'Exif')) {
+    // Exifフォーマットではないと推定されるので弾く
+    return '？？';
+  }
+  if (!compareArray(view.slice(12, 14), [0x49, 0x49])) {
+    // 面倒なので、ビッグエンディアンの際も弾く
+    return '？？';
+  }
+  const pointerOffset = 2 + 2 + 2 + 6;  // IFD関係のポインター値のオフセット値
+  // 0th IFDを読み取る
+  const zerothIfdPointer = getIntValueLE(view.slice(16, 20));
+  const zerothIfdIndex = pointerOffset + zerothIfdPointer;
+  const zerothIfdData = getIfdData(view, zerothIfdIndex);
+  
+  // Exif IFDへのポインターを探す
+  const temp = zerothIfdData.filter(tag => tag.id === 34665);
+  if (temp.length === 0) {
+    return '？？';
+  }
+  const exifIfdPointer = temp[0].value;
+  const exifIfdIndex = pointerOffset + exifIfdPointer;
+  const exifIfdData = getIfdData(view, exifIfdIndex);
+
+  // レンズ名へのポインターを探す
+  const temp2 = exifIfdData.filter(tag => tag.id === 42036);
+  if (temp2.length === 0) {
+    return '？？';
+  }
+  const lensNameLength = temp2[0].count;
+  const lensNamePointer = temp2[0].value;
+  const lensNameIndex = pointerOffset + lensNamePointer;
+  return getAsciiValue(view, lensNameIndex, lensNameLength);
+}
 
 const App = () => {
   const [maker, setMaker] = useState('？');
@@ -93,7 +201,10 @@ const App = () => {
                 setLensName(getLensNameForPanasonic(exif['MakerNote'], rawData));
               } else if (rawMaker.includes('SIGMA') && 'undefined' in exif) {
                 setLensName((exif['undefined'] as string).replace(/\0/g, ''));
-              } else {
+              } else if (rawMaker.includes('SONY') && 'MakerNote' in exif) {
+                setLensName(getLensNameForSONY(rawData));
+                console.log(exif);
+              }else {
                 setLensName('？');
                 console.log(exif);
               }
