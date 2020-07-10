@@ -1,6 +1,7 @@
 import React from 'react';
 import { Container, Row, Col } from 'react-bootstrap';
 import 'App.css';
+import EXIF from 'exif-js';
 
 const App = () => {
   const onDragOver = (e: React.DragEvent<HTMLDivElement>) => {
@@ -14,15 +15,14 @@ const App = () => {
     e.preventDefault();
     const files: FileList = e.dataTransfer.files; 
     if (files.length >= 1) {
-      const file = files.item(0);
-      if (file !== null) {
-        window.alert(`ファイル名：${file.name}\nファイルタイプ：${file.type}\nファイルサイズ(B)：${file.size}`);
-        const reader = new FileReader();
-        reader.onload = () => {
-          console.log(reader.result);
-        };
-        reader.readAsDataURL(file);
-      }
+      const file = files[0];
+      console.log(`ファイル名：${file.name}`);
+      console.log(`ファイルタイプ：${file.type}`);
+      console.log(`ファイルサイズ(B)：${file.size}`);
+      EXIF.getData(file as any, () => {
+          const exitData = EXIF.pretty(file);
+          console.log(exitData);
+      });
     }
   };
 
