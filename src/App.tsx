@@ -87,6 +87,8 @@ const App = () => {
                 setLensName((exif['undefined'] as string).replace(/\0/g, ''));
               } else if (rawMaker.includes('Panasonic') && 'MakerNote' in exif) {
                 setLensName(getLensNameForPanasonic(exif['MakerNote'], rawData));
+              } else if (rawMaker.includes('SIGMA') && 'undefined' in exif) {
+                setLensName((exif['undefined'] as string).replace(/\0/g, ''));
               } else {
                 setLensName('？');
                 console.log(exif);
