@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, FormEvent } from 'react';
 import { Container, Row, Col, Form } from 'react-bootstrap';
 import 'App.css';
 import EXIF from 'exif-js';
@@ -228,6 +228,8 @@ const App = () => {
   const [imageUrl, setImageUrl] = useState('');
   const [imageSrc, setImageSrc] = useState('');
   const [loadingFlg, setLoadingFlg] = useState(false);
+  const [textPosition, setTextPosition] = useState('lb');
+  const [textColor, setTextColor] = useState('w');
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -244,20 +246,38 @@ const App = () => {
     }
     const img = new Image();
     img.src = imageUrl;
-    img.onload = function() {
+    img.onload = function () {
       // 保存用の画像データを作成する
       canvas.width = img.width;
       canvas.height = img.height;
       ctx.drawImage(img, 0, 0, img.width, img.height);
       const fontSize = img.height / 72;
-      ctx.fillStyle = `rgb(186,192,178)`;
+      if (textColor === 'w') {
+        ctx.fillStyle = `rgb(186,192,178)`;
+      } else {
+        ctx.fillStyle = `rgb(69,63,77)`;
+      }
       ctx.font = `${fontSize}px sans-serif`;
       const insertedText = `${maker} ${model}, ${lensName}, ${shutterSpeed}, F${fNumber}, ${isoRate}`;
-      ctx.fillText(insertedText, fontSize, img.height - fontSize * 2);
+      const rect = ctx.measureText(insertedText);
+      switch (textPosition) {
+        case 'lb':
+          ctx.fillText(insertedText, fontSize, img.height - fontSize);
+          break;
+        case 'rb':
+          ctx.fillText(insertedText, img.width - fontSize - rect.width, img.height - fontSize);
+          break;
+        case 'rt':
+          ctx.fillText(insertedText, img.width - fontSize - rect.width, fontSize * 2);
+          break;
+        case 'lt':
+          ctx.fillText(insertedText, fontSize, fontSize * 2);
+          break;
+      }
       setImageSrc(canvas.toDataURL());
       setLoadingFlg(false);
     };
-  }, [imageUrl, maker, model, lensName, shutterSpeed, fNumber, isoRate]);
+  }, [imageUrl, maker, model, lensName, shutterSpeed, fNumber, isoRate, textPosition, textColor]);
 
   const onDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     if (loadingFlg) {
@@ -389,6 +409,26 @@ const App = () => {
               <Form.Group as={Col} className="col-sm-2">
                 <Form.Label>ISO感度</Form.Label>
                 <Form.Control type="text" disabled value={isoRate} />
+              </Form.Group>
+            </Form.Row>
+            <Form.Row>
+              <Form.Group as={Col}>
+                <Form.Label>表示位置</Form.Label>
+                <Form.Control as="select" value={textPosition}
+                  onChange={(e: FormEvent<any>) => setTextPosition(e.currentTarget.value)}>
+                  <option value="lb">左下</option>
+                  <option value="rb">右下</option>
+                  <option value="rt">右上</option>
+                  <option value="lt">左上</option>
+                </Form.Control>
+              </Form.Group>
+              <Form.Group as={Col}>
+                <Form.Label>表示色</Form.Label>
+                <Form.Control as="select" value={textColor}
+                  onChange={(e: FormEvent<any>) => setTextColor(e.currentTarget.value)}>
+                  <option value="w">明るい色</option>
+                  <option value="b">暗い色</option>
+                </Form.Control>
               </Form.Group>
             </Form.Row>
           </Form>
