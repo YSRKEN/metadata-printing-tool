@@ -227,6 +227,7 @@ const App = () => {
   const [isoRate, setIsoRate] = useState('？');
   const [imageUrl, setImageUrl] = useState('');
   const [imageSrc, setImageSrc] = useState('');
+  const [loadingFlg, setLoadingFlg] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -254,20 +255,28 @@ const App = () => {
       const insertedText = `${maker} ${model}, ${lensName}, ${shutterSpeed}, F${fNumber}, ${isoRate}`;
       ctx.fillText(insertedText, fontSize, img.height - fontSize * 2);
       setImageSrc(canvas.toDataURL());
+      setLoadingFlg(false);
     };
   }, [imageUrl, maker, model, lensName, shutterSpeed, fNumber, isoRate]);
 
   const onDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    if (loadingFlg) {
+      return;
+    }
     e.stopPropagation();
     e.preventDefault();
     e.dataTransfer.dropEffect = 'copy';
   };
 
   const onDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    if (loadingFlg) {
+      return;
+    }
     e.stopPropagation();
     e.preventDefault();
     const files: FileList = e.dataTransfer.files;
     if (files.length >= 1) {
+      setLoadingFlg(true);
       const file = files[0];
       const reader = new FileReader();
       reader.onload = () => {
@@ -340,12 +349,14 @@ const App = () => {
       <Row className="my-3">
         <Col sm={4} className="mx-auto">
           <div
-            className="border d-flex justify-content-center flex-column align-items-center"
+            className={"border d-flex justify-content-center flex-column align-items-center " + (loadingFlg ? 'bg-warning' : '')}
             style={{ width: '100%', height: 150 }}
             onDragOver={onDragOver}
             onDrop={onDrop}
           >
-            <span className="d-block"><strong>ここにドラッグ＆ドロップ</strong></span>
+            <span className="d-block "><strong>
+              {loadingFlg ? '読み込み中...' : 'ここにドラッグ＆ドロップ'}
+            </strong></span>
           </div>
         </Col>
       </Row>
