@@ -1,7 +1,18 @@
-import React from "react";
+import React, { useContext, FormEvent } from "react";
 import { Form } from "react-bootstrap";
+import { ApplicationContext } from "service/state";
 
 const OptionForm: React.FC = () => {
+  const { textPosition, textColor, dispatch } = useContext(ApplicationContext);
+
+  const onChangeTextPosition = (e: FormEvent<any>) => {
+    dispatch({type: 'setTextPosition', message: e.currentTarget.value});
+  };
+
+  const onChangeTextColor = (e: FormEvent<any>) => {
+    dispatch({type: 'setTextColor', message: e.currentTarget.value});
+  };
+
   return (
     <Form>
       <Form.Group>
@@ -30,7 +41,7 @@ const OptionForm: React.FC = () => {
       </Form.Group>
       <Form.Group>
         <Form.Label htmlFor="text_position">表示位置</Form.Label>
-        <Form.Control id="text_position" as="select">
+        <Form.Control id="text_position" as="select" value={textPosition} onChange={onChangeTextPosition}>
           <option value="lb">左下</option>
           <option value="rb">右下</option>
           <option value="rt">右上</option>
@@ -39,7 +50,7 @@ const OptionForm: React.FC = () => {
       </Form.Group>
       <Form.Group>
         <Form.Label htmlFor="text_color">表示色</Form.Label>
-        <Form.Control id="text_color" as="select">
+        <Form.Control id="text_color" as="select" value={textColor} onChange={onChangeTextColor}>
           <option value="w">明るい色</option>
           <option value="b">暗い色</option>
         </Form.Control>
