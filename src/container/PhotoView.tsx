@@ -1,24 +1,8 @@
 import React, { useContext, useRef, FormEvent } from "react";
 import { ApplicationContext } from "service/state";
 
-const PhotoViewImage: React.FC = () => {
-  const { imageSource } = useContext(ApplicationContext);
-
-  if (imageSource === '') {
-    return (
-      <strong className="d-block">
-        クリックしてファイルを読み込み……
-      </strong>
-    );
-  } else {
-    return (
-      <img src={imageSource} width="100%" height="100%" alt="実行結果" />
-    );
-  }
-};
-
 const PhotoView: React.FC = () => {
-  const { dispatch } = useContext(ApplicationContext);
+  const { imageSource, dispatch } = useContext(ApplicationContext);
   const fileRef = useRef<HTMLInputElement>(null);
 
   // div部分(輪郭線で表示されている部分)をクリックした際の動き
@@ -35,7 +19,7 @@ const PhotoView: React.FC = () => {
       reader.onload = () => {
         const result = reader.result;
         if (typeof result === 'string') {
-          dispatch({type: 'setImageSource', message: result});
+          dispatch({ type: 'setImageSource', message: result });
         }
       };
       reader.readAsDataURL(files[0]);
@@ -45,12 +29,27 @@ const PhotoView: React.FC = () => {
   return (
     <>
       <input type="file" className="d-none" ref={fileRef} onChange={onChangeInput} />
-      <div
-        className="border d-flex justify-content-center flex-column align-items-center h-100"
-        onClick={onClickDiv}
-      >
-        <PhotoViewImage />
-      </div>
+      {
+        imageSource === ''
+          ? (
+            <div
+              className="border d-flex justify-content-center flex-column align-items-center h-100"
+              onClick={onClickDiv}
+            >
+              <strong className="d-block">
+                クリックしてファイルを読み込み
+              </strong>
+            </div>
+          )
+          : (
+            <div
+              className="border d-flex justify-content-center flex-column align-items-center"
+              onClick={onClickDiv}
+            >
+              <img src={imageSource} width="100%" height="auto" alt="実行結果" />
+            </div>
+          )
+      }
     </>
   );
 };
