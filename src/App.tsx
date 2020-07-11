@@ -231,6 +231,7 @@ const App = () => {
   const [textPosition, setTextPosition] = useState('lb');
   const [textColor, setTextColor] = useState('w');
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (imageUrl === null || imageUrl === '') {
@@ -288,6 +289,68 @@ const App = () => {
     e.dataTransfer.dropEffect = 'copy';
   };
 
+  const loadFile = (file: File) => {
+    setLoadingFlg(true);
+    const reader = new FileReader();
+    reader.onload = () => {
+      const rawData = reader.result;
+      if (rawData !== null && typeof rawData !== 'string') {
+        EXIF.getData(file as any, () => {
+          const exif: { [key: string]: any } = EXIF.getAllTags(file);
+          if ('Make' in exif) {
+            setMaker((exif['Make'] as string).replace(/\0/g, ''));
+          }
+          if ('Model' in exif) {
+            setModel((exif['Model'] as string).replace(/\0/g, ''));
+          }
+          if ('ExposureTime' in exif) {
+            const rawShutterSpeed: Number = exif['ExposureTime'];
+            if (rawShutterSpeed.valueOf() < 1.0) {
+              setShutterSpeed(`1/${Math.round(1.0 / rawShutterSpeed.valueOf())}`);
+            } else {
+              setShutterSpeed(rawShutterSpeed.toString());
+            }
+          }
+          if ('FNumber' in exif) {
+            const rawFNumber: Number = exif['FNumber'];
+            setFNumber(rawFNumber.toString());
+          }
+          if ('ISOSpeedRatings' in exif) {
+            setIsoRate(`ISO${exif['ISOSpeedRatings']}`);
+          }
+
+          // メーカー毎に分析処理が分岐
+          if ('Make' in exif) {
+            const rawMaker = (exif['Make'] as string);
+            if (rawMaker.includes('OLYMPUS') && 'undefined' in exif) {
+              setLensName((exif['undefined'] as string).replace(/\0/g, ''));
+            } else if (rawMaker.includes('Panasonic') && 'MakerNote' in exif) {
+              setLensName(getLensNameForPanasonic(exif['MakerNote'], rawData));
+            } else if (rawMaker.includes('SIGMA') && 'undefined' in exif) {
+              setLensName((exif['undefined'] as string).replace(/\0/g, ''));
+            } else if (rawMaker.includes('SONY')) {
+              setLensName(getLensNameForSONY(rawData));
+              console.log(exif);
+            } else if (rawMaker.includes('Canon')) {
+              setLensName(getLensNameForCanon(rawData));
+              console.log(exif);
+            } else {
+              setLensName('？');
+              console.log(exif);
+            }
+          }
+        });
+      }
+    };
+    reader.readAsArrayBuffer(file);
+
+    const reader2 = new FileReader();
+    reader2.onload = () => {
+      setImageUrl(reader2.result as string);
+    };
+    reader2.readAsDataURL(file);
+  };
+
   const onDrop = (e: React.DragEvent<HTMLDivElement>) => {
     if (loadingFlg) {
       return;
@@ -296,66 +359,19 @@ const App = () => {
     e.preventDefault();
     const files: FileList = e.dataTransfer.files;
     if (files.length >= 1) {
-      setLoadingFlg(true);
-      const file = files[0];
-      const reader = new FileReader();
-      reader.onload = () => {
-        const rawData = reader.result;
-        if (rawData !== null && typeof rawData !== 'string') {
-          EXIF.getData(file as any, () => {
-            const exif: { [key: string]: any } = EXIF.getAllTags(file);
-            if ('Make' in exif) {
-              setMaker((exif['Make'] as string).replace(/\0/g, ''));
-            }
-            if ('Model' in exif) {
-              setModel((exif['Model'] as string).replace(/\0/g, ''));
-            }
-            if ('ExposureTime' in exif) {
-              const rawShutterSpeed: Number = exif['ExposureTime'];
-              if (rawShutterSpeed.valueOf() < 1.0) {
-                setShutterSpeed(`1/${Math.round(1.0 / rawShutterSpeed.valueOf())}`);
-              } else {
-                setShutterSpeed(rawShutterSpeed.toString());
-              }
-            }
-            if ('FNumber' in exif) {
-              const rawFNumber: Number = exif['FNumber'];
-              setFNumber(rawFNumber.toString());
-            }
-            if ('ISOSpeedRatings' in exif) {
-              setIsoRate(`ISO${exif['ISOSpeedRatings']}`);
-            }
+      loadFile(files[0]);
+    }
+  };
 
-            // メーカー毎に分析処理が分岐
-            if ('Make' in exif) {
-              const rawMaker = (exif['Make'] as string);
-              if (rawMaker.includes('OLYMPUS') && 'undefined' in exif) {
-                setLensName((exif['undefined'] as string).replace(/\0/g, ''));
-              } else if (rawMaker.includes('Panasonic') && 'MakerNote' in exif) {
-                setLensName(getLensNameForPanasonic(exif['MakerNote'], rawData));
-              } else if (rawMaker.includes('SIGMA') && 'undefined' in exif) {
-                setLensName((exif['undefined'] as string).replace(/\0/g, ''));
-              } else if (rawMaker.includes('SONY')) {
-                setLensName(getLensNameForSONY(rawData));
-                console.log(exif);
-              } else if (rawMaker.includes('Canon')) {
-                setLensName(getLensNameForCanon(rawData));
-                console.log(exif);
-              } else {
-                setLensName('？');
-                console.log(exif);
-              }
-            }
-          });
-        }
-      };
-      reader.readAsArrayBuffer(file);
+  const onClickDropArea = () => {
+    fileRef?.current?.click();
+  };
 
-      const reader2 = new FileReader();
-      reader2.onload = () => {
-        setImageUrl(reader2.result as string);
-      };
-      reader2.readAsDataURL(file);
+  const onChangeFileInput = (e: FormEvent<HTMLInputElement>) => {
+    const files: FileList | null = e.currentTarget.files;
+    console.log(files);
+    if (files !== null && files.length >= 1) {
+      loadFile(files[0]);
     }
   };
 
@@ -368,11 +384,13 @@ const App = () => {
       </Row>
       <Row className="my-3">
         <Col sm={4} className="mx-auto">
+          <input type="file" className="d-none" ref={fileRef} onChange={onChangeFileInput} />
           <div
             className={"border d-flex justify-content-center flex-column align-items-center " + (loadingFlg ? 'bg-warning' : '')}
             style={{ width: '100%', height: 150 }}
             onDragOver={onDragOver}
             onDrop={onDrop}
+            onClick={onClickDropArea}
           >
             <span className="d-block "><strong>
               {loadingFlg ? '読み込み中...' : 'ここにドラッグ＆ドロップ'}
