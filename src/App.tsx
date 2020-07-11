@@ -343,7 +343,7 @@ const App = () => {
     <Container>
       <Row className="my-3">
         <Col>
-          <h1 className="text-center">画像内にExifデータを書き込むツール</h1>
+          <h1 className="text-center">フォトヨドバシごっこ</h1>
         </Col>
       </Row>
       <Row className="my-3">
