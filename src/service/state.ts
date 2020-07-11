@@ -1,7 +1,7 @@
 import { useState, createContext } from "react";
 
 // Actionの種類
-type ActionType = 'setTextPosition' | 'setTextColor';
+type ActionType = 'setTextPosition' | 'setTextColor' | 'setImageSource';
 
 // テキストの表示位置
 type TextPosition = 'lb' | 'rb' | 'rt' | 'lt';
@@ -17,8 +17,9 @@ interface Action {
 
 // アプリケーションの状態
 interface ApplicationState {
-  textPosition: TextPosition;
-  textColor: TextColor;
+  textPosition: TextPosition; // テキストの表示位置
+  textColor: TextColor;       // テキストの表示色
+  imageSource: string;        // 表示される画像データ
   dispatch: (action: Action) => void;
 }
 
@@ -26,15 +27,22 @@ interface ApplicationState {
 export const useApplicationState = (): ApplicationState => {
   const [textPosition, setTextPosition] = useState<TextPosition>('lb');
   const [textColor, setTextColor] = useState<TextColor>('w');
+  const [imageSource, setImageSource] = useState('');
 
   const dispatch = async (action: Action) => {
     try {
       switch (action.type) {
+        // テキストの表示位置を変更する
         case 'setTextPosition':
           setTextPosition(action.message as TextPosition);
           break;
+        // テキストの表示色を変更する
         case 'setTextColor':
           setTextColor(action.message as TextColor);
+          break;
+        // 画像データをセットする
+        case 'setImageSource':
+          setImageSource(action.message);
           break;
       }
     } catch (e) {
@@ -47,6 +55,7 @@ export const useApplicationState = (): ApplicationState => {
   return {
     textPosition,
     textColor,
+    imageSource,
     dispatch
   };
 };

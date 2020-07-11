@@ -5,10 +5,12 @@ import { ApplicationContext } from "service/state";
 const OptionForm: React.FC = () => {
   const { textPosition, textColor, dispatch } = useContext(ApplicationContext);
 
+  // テキストの表示位置を変更する
   const onChangeTextPosition = (e: FormEvent<any>) => {
     dispatch({type: 'setTextPosition', message: e.currentTarget.value});
   };
 
+  // テキストの表示色を変更する
   const onChangeTextColor = (e: FormEvent<any>) => {
     dispatch({type: 'setTextColor', message: e.currentTarget.value});
   };
