@@ -1,8 +1,9 @@
 import React, { useContext, useRef, FormEvent } from "react";
 import { ApplicationContext } from "service/state";
+import { Alert } from "react-bootstrap";
 
 const PhotoView: React.FC = () => {
-  const { imageSource, dispatch } = useContext(ApplicationContext);
+  const { imageSource, loadingFlg, dispatch } = useContext(ApplicationContext);
   const fileRef = useRef<HTMLInputElement>(null);
 
   // div部分(輪郭線で表示されている部分)をクリックした際の動き
@@ -21,13 +22,18 @@ const PhotoView: React.FC = () => {
         if (typeof result === 'string') {
           dispatch({ type: 'setImageSource', message: result });
         }
+        dispatch({type: 'setLoadingFalse', message: ''});
       };
+      dispatch({type: 'setLoadingTrue', message: ''});
       reader.readAsDataURL(files[0]);
     }
   };
 
   return (
     <>
+      {
+        loadingFlg ? <Alert variant='primary'>処理中……</Alert> : <></>
+      }
       <input type="file" className="d-none" ref={fileRef} onChange={onChangeInput} />
       {
         imageSource === ''
