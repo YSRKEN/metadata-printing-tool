@@ -8,6 +8,7 @@ const OptionForm: React.FC = () => {
     textColor,
     cameraMaker,
     cameraModel,
+    lensName,
     exposureTime,
     fNumber,
     iSOSpeedRatings,
@@ -32,6 +33,11 @@ const OptionForm: React.FC = () => {
   // カメラの機種名を変更する
   const onChangeCameraModel = (e: FormEvent<any>) => {
     dispatch({ type: 'setCameraModel', message: e.currentTarget.value });
+  };
+
+  // レンズ名を変更する
+  const onChangeLensName = (e: FormEvent<any>) => {
+    dispatch({ type: 'setLensName', message: e.currentTarget.value });
   };
 
   // 露光時間を変更する
@@ -61,7 +67,7 @@ const OptionForm: React.FC = () => {
       </Form.Group>
       <Form.Group>
         <Form.Label htmlFor="lens_name">レンズ名</Form.Label>
-        <Form.Control id="lens_name" />
+        <Form.Control id="lens_name" value={lensName} onChange={onChangeLensName} />
       </Form.Group>
       <Form.Group>
         <Form.Label htmlFor="exposure_time">露光時間</Form.Label>

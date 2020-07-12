@@ -10,6 +10,7 @@ type ActionType = 'setTextPosition'
   | 'setLoadingFalse'
   | 'setCameraMaker'
   | 'setCameraModel'
+  | 'setLensName'
   | 'setExposureTime'
   | 'setFNumber'
   | 'setISOSpeedRatings';
@@ -34,6 +35,7 @@ interface ApplicationState {
   loadingFlg: boolean;        // 読み込み中ならtrue
   cameraMaker: string;        // カメラメーカー
   cameraModel: string;        // カメラの機種名
+  lensName: string;           // レンズ名
   exposureTime: string;       // 露光時間
   fNumber: string;            // F値
   iSOSpeedRatings: string;    // ISO感度
@@ -48,6 +50,7 @@ export const useApplicationState = (): ApplicationState => {
   const [imageSource, setImageSource] = useState('');
   const [cameraMaker, setCameraMaker] = useState('');
   const [cameraModel, setCameraModel] = useState('');
+  const [lensName, setLensName] = useState('');
   const [exposureTime, setExposureTime] = useState('');
   const [fNumber, setFNumber] = useState('');
   const [iSOSpeedRatings, setISOSpeedRatings] = useState('');
@@ -67,6 +70,7 @@ export const useApplicationState = (): ApplicationState => {
       // メタ情報をUI上にセットする
       setCameraMaker(metaInfo.cameraMaker);
       setCameraModel(metaInfo.cameraModel);
+      setLensName(metaInfo.lensName);
       setExposureTime(fractionToString(metaInfo.exposureTime, 'exp'));
       setFNumber(fractionToString(metaInfo.fNumber, 'f'));
       setISOSpeedRatings(`ISO${metaInfo.iSOSpeedRatings}`);
@@ -101,9 +105,13 @@ export const useApplicationState = (): ApplicationState => {
         case 'setCameraMaker':
           setCameraMaker(action.message);
           break;
-        // カメラメーカーを変更する
+        // カメラ名を変更する
         case 'setCameraModel':
           setCameraModel(action.message);
+          break;
+        // カメラメーカーを変更する
+        case 'setLensName':
+          setLensName(action.message);
           break;
         // 露光時間を変更する
         case 'setExposureTime':
@@ -132,6 +140,7 @@ export const useApplicationState = (): ApplicationState => {
     loadingFlg,
     cameraMaker,
     cameraModel,
+    lensName,
     exposureTime,
     fNumber,
     iSOSpeedRatings,

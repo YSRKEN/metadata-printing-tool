@@ -4,6 +4,7 @@ import { IfdType, Fraction } from "constant/other";
 export interface MetaInfo {
   cameraMaker: string;      // カメラメーカー
   cameraModel: string;      // カメラ名
+  lensName: string;         // レンズ名
   exposureTime: Fraction;   // 露光時間
   fNumber: Fraction;        // F値
   iSOSpeedRatings: number;  // ISO感度

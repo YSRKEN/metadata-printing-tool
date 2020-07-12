@@ -1,5 +1,6 @@
 import { MetaInfo, IFD } from "constant/model";
 import { DEFAULT_META_INFO, Endian, Fraction } from "constant/other";
+import { findBinary } from "./utility";
 
 /**
  * 配列同士を比較する
@@ -251,18 +252,43 @@ export const getMetaInfo = (imageBinary: Uint8Array): MetaInfo => {
   }
 
   // IFDの一覧から、カメラメーカー名・カメラモデル名・露光時間・F値・ISO感度を抽出する
-  // console.log(allIfdData);
+  console.log(allIfdData);
   const cameraMaker = findIfd(allIfdData, 271, DEFAULT_META_INFO.cameraMaker);
   const cameraModel = findIfd(allIfdData, 272, DEFAULT_META_INFO.cameraModel);
+  let lensName = findIfd(allIfdData, 42036, DEFAULT_META_INFO.lensName);
   const exposureTimeTemp = findIfd(allIfdData, 33434, []);
   const exposureTime = exposureTimeTemp.length > 0 ? exposureTimeTemp[0] : DEFAULT_META_INFO.exposureTime;
   const fNumberTemp = findIfd(allIfdData, 33437, []);
   const fNumber = fNumberTemp.length > 0 ? fNumberTemp[0] : DEFAULT_META_INFO.fNumber;
   const iSOSpeedRatings = findIfd(allIfdData, 34855, DEFAULT_META_INFO.iSOSpeedRatings);
 
+  // これではレンズ名を取得できない場合の処理
+  // ※Canon・SONY・SIGMA・OLYMPUSにはこの処理が不要
+  switch (cameraMaker) {
+    case 'Panasonic': {
+      // メーカーノートを取得
+      const makerNote = findIfd(allIfdData, 37500, Uint8Array.from([]));
+      if (makerNote.length === 0) {
+        break;
+      }
+
+      // メーカーノートを解析
+      const makerNoteStartIndex = findBinary(imageBinary, makerNote);
+      if (makerNoteStartIndex < 0) {
+        break;
+      }
+      const makerNoteIfdData = getIfdData(imageBinary, makerNoteStartIndex + 12, exifBasePointer, endian);
+
+      // データを取り出す
+      lensName = findIfd(makerNoteIfdData, 0x51, DEFAULT_META_INFO.lensName);
+      break;
+    }
+  }
+
   return {
     cameraMaker,
     cameraModel,
+    lensName,
     exposureTime,
     fNumber,
     iSOSpeedRatings

@@ -4,6 +4,7 @@ import { MetaInfo } from "constant/model";
 export const DEFAULT_META_INFO: MetaInfo = {
   cameraMaker: '?',
   cameraModel: '?',
+  lensName: '?',
   exposureTime: {numerator: 1, denominator: 1},
   fNumber: {numerator: 1, denominator: 1},
   iSOSpeedRatings: 100
