@@ -8,6 +8,9 @@ const OptionForm: React.FC = () => {
     textColor,
     cameraMaker,
     cameraModel,
+    exposureTime,
+    fNumber,
+    iSOSpeedRatings,
     dispatch
   } = useContext(ApplicationContext);
 
@@ -31,6 +34,21 @@ const OptionForm: React.FC = () => {
     dispatch({ type: 'setCameraModel', message: e.currentTarget.value });
   };
 
+  // 露光時間を変更する
+  const onChangeExposureTime = (e: FormEvent<any>) => {
+    dispatch({ type: 'setExposureTime', message: e.currentTarget.value });
+  };
+
+  // F値を変更する
+  const onChangeFNumber = (e: FormEvent<any>) => {
+    dispatch({ type: 'setFNumber', message: e.currentTarget.value });
+  };
+
+  // ISO感度を変更する
+  const onChangeISOSpeedRatings = (e: FormEvent<any>) => {
+    dispatch({ type: 'setISOSpeedRatings', message: e.currentTarget.value });
+  };
+
   return (
     <Form>
       <Form.Group>
@@ -47,15 +65,15 @@ const OptionForm: React.FC = () => {
       </Form.Group>
       <Form.Group>
         <Form.Label htmlFor="exposure_time">露光時間</Form.Label>
-        <Form.Control id="exposure_time" />
+        <Form.Control id="exposure_time" value={exposureTime} onChange={onChangeExposureTime} />
       </Form.Group>
       <Form.Group>
         <Form.Label htmlFor="f_number">F値</Form.Label>
-        <Form.Control id="f_number" />
+        <Form.Control id="f_number" value={fNumber} onChange={onChangeFNumber} />
       </Form.Group>
       <Form.Group>
-        <Form.Label htmlFor="iso_rate">ISO感度</Form.Label>
-        <Form.Control id="iso_rate" />
+        <Form.Label htmlFor="iso_speed_ratings">ISO感度</Form.Label>
+        <Form.Control id="iso_speed_ratings" value={iSOSpeedRatings} onChange={onChangeISOSpeedRatings} />
       </Form.Group>
       <Form.Group>
         <Form.Label htmlFor="text_position">表示位置</Form.Label>

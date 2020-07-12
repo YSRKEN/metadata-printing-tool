@@ -8,7 +8,10 @@ type ActionType = 'setTextPosition'
   | 'setLoadingTrue'
   | 'setLoadingFalse'
   | 'setCameraMaker'
-  | 'setCameraModel';
+  | 'setCameraModel'
+  | 'setExposureTime'
+  | 'setFNumber'
+  | 'setISOSpeedRatings';
 
 // テキストの表示位置
 type TextPosition = 'lb' | 'rb' | 'rt' | 'lt';
@@ -30,6 +33,9 @@ interface ApplicationState {
   loadingFlg: boolean;        // 読み込み中ならtrue
   cameraMaker: string;        // カメラメーカー
   cameraModel: string;        // カメラの機種名
+  exposureTime: string;       // 露光時間
+  fNumber: string;            // F値
+  iSOSpeedRatings: string;    // ISO感度
   dispatch: (action: Action) => void;
 }
 
@@ -41,6 +47,9 @@ export const useApplicationState = (): ApplicationState => {
   const [imageSource, setImageSource] = useState('');
   const [cameraMaker, setCameraMaker] = useState('');
   const [cameraModel, setCameraModel] = useState('');
+  const [exposureTime, setExposureTime] = useState('');
+  const [fNumber, setFNumber] = useState('');
+  const [iSOSpeedRatings, setISOSpeedRatings] = useState('');
 
   // 画像が置き換わる度に、メタ情報を読み込みし直す
   useEffect(() => {
@@ -49,13 +58,17 @@ export const useApplicationState = (): ApplicationState => {
     const temp = imageSource.split(',');
     if (temp.length >= 2) {
       const imageBinary = Uint8Array.from(atob(imageSource.split(',')[1]).split(''), e => e.charCodeAt(0));
-      
+
       // Unit8Arrayを解析し、メタ情報を取り出す
       const metaInfo = getMetaInfo(imageBinary);
+      // console.log(metaInfo);
 
       // メタ情報をUI上にセットする
       setCameraMaker(metaInfo.cameraMaker);
       setCameraModel(metaInfo.cameraModel);
+      setExposureTime(`${metaInfo.exposureTime.numerator}/${metaInfo.exposureTime.denominator}`);
+      setFNumber(`${metaInfo.fNumber.numerator}/${metaInfo.fNumber.denominator}`);
+      setISOSpeedRatings(`ISO${metaInfo.iSOSpeedRatings}`);
     }
     setLoadingFlg(false);
   }, [imageSource]);
@@ -91,6 +104,18 @@ export const useApplicationState = (): ApplicationState => {
         case 'setCameraModel':
           setCameraModel(action.message);
           break;
+        // 露光時間を変更する
+        case 'setExposureTime':
+          setExposureTime(action.message);
+          break;
+        // F値を変更する
+        case 'setFNumber':
+          setFNumber(action.message);
+          break;
+        // ISO感度を変更する
+        case 'setISOSpeedRatings':
+          setISOSpeedRatings(action.message);
+          break;
       }
     } catch (e) {
       const e2: Error = e;
@@ -106,6 +131,9 @@ export const useApplicationState = (): ApplicationState => {
     loadingFlg,
     cameraMaker,
     cameraModel,
+    exposureTime,
+    fNumber,
+    iSOSpeedRatings,
     dispatch
   };
 };

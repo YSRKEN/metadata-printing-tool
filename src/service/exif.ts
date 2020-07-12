@@ -1,5 +1,5 @@
 import { MetaInfo, IFD } from "constant/model";
-import { DEFAULT_META_INFO, Endian } from "constant/other";
+import { DEFAULT_META_INFO, Endian, Fraction } from "constant/other";
 
 /**
  * 配列同士を比較する
@@ -69,7 +69,7 @@ const getAsciiValue = (arr1: Uint8Array, start: number, length: number) => {
  * @param startIndex IFDデータの開始位置
  * @param exifBasePointer Exifデータの基準位置
  * @param endian エンディアン
- * 
+ * @returns IFD形式のデータ一覧
  */
 const getIfdData = (arr1: Uint8Array, startIndex: number, exifBasePointer: number, endian: Endian) => {
   // タグの個数を取得
@@ -114,13 +114,13 @@ const getIfdData = (arr1: Uint8Array, startIndex: number, exifBasePointer: numbe
         break;
       }
       case 5: {
-        const temp: [number, number][] = [];
+        const temp: Fraction[] = [];
         const startPointer = exifBasePointer + ifdValue;
         for (let j = startPointer; j < startPointer + ifdCount * 8; j += 8) {
-          temp.push([
-            getIntValue(arr1.slice(j, j + 4), endian),
-            getIntValue(arr1.slice(j + 4, j + 8), endian)
-          ]);
+          temp.push({
+            numerator: getIntValue(arr1.slice(j, j + 4), endian),
+            denominator: getIntValue(arr1.slice(j + 4, j + 8), endian)
+          });
         }
         output.push({id: ifdId, type: 'RATIONAL', value: temp});
         break;
@@ -140,13 +140,13 @@ const getIfdData = (arr1: Uint8Array, startIndex: number, exifBasePointer: numbe
         break;
       }
       case 10: {
-        const temp: [number, number][] = [];
+        const temp: Fraction[] = [];
         const startPointer = exifBasePointer + ifdValue;
         for (let j = startPointer; j < startPointer + ifdCount * 8; j += 8) {
-          temp.push([
-            getIntValue(arr1.slice(j, j + 4), endian),
-            getIntValue(arr1.slice(j + 4, j + 8), endian)
-          ]);
+          temp.push({
+            numerator: getIntValue(arr1.slice(j, j + 4), endian),
+            denominator: getIntValue(arr1.slice(j + 4, j + 8), endian)
+          });
         }
         output.push({id: ifdId, type: 'SRATIONAL', value: temp});
         break;
@@ -157,6 +157,22 @@ const getIfdData = (arr1: Uint8Array, startIndex: number, exifBasePointer: numbe
     }
   }
   return output;
+};
+
+/**
+ * IFDのデータ一覧から、指定したタグIDのものを抽出して値を返す
+ * @param ifdData IFDのデータ一覧
+ * @param id タグID
+ * @param defaultValue 見つからなかった際のデフォルト値
+ * @return 値
+ */
+const findIfd = <T>(ifdData: IFD[], id: number, defaultValue: T) => {
+  const temp = ifdData.filter(ifd=> ifd.id === id);
+  if (temp.length > 0) {
+    return (temp[0].value as any) as T;
+  } else {
+    return defaultValue;
+  }
 };
 
 /**
@@ -234,15 +250,21 @@ export const getMetaInfo = (imageBinary: Uint8Array): MetaInfo => {
     allIfdData = [...allIfdData, ...exifIfdData];
   }
 
-  // IFDの一覧から、カメラメーカー名とカメラモデル名を抽出する
-  console.log(allIfdData);
-  const cameraMakerIfd = allIfdData.filter(ifd => ifd.id === 271);
-  const cameraModelIfd = allIfdData.filter(ifd => ifd.id === 272);
-  const cameraMaker = cameraMakerIfd.length > 0 ? cameraMakerIfd[0].value as string : '';
-  const cameraModel = cameraModelIfd.length > 0 ? cameraModelIfd[0].value as string : '';
+  // IFDの一覧から、カメラメーカー名・カメラモデル名・露光時間・F値・ISO感度を抽出する
+  // console.log(allIfdData);
+  const cameraMaker = findIfd(allIfdData, 271, DEFAULT_META_INFO.cameraMaker);
+  const cameraModel = findIfd(allIfdData, 272, DEFAULT_META_INFO.cameraModel);
+  const exposureTimeTemp = findIfd(allIfdData, 33434, []);
+  const exposureTime = exposureTimeTemp.length > 0 ? exposureTimeTemp[0] : DEFAULT_META_INFO.exposureTime;
+  const fNumberTemp = findIfd(allIfdData, 33437, []);
+  const fNumber = fNumberTemp.length > 0 ? fNumberTemp[0] : DEFAULT_META_INFO.fNumber;
+  const iSOSpeedRatings = findIfd(allIfdData, 34855, DEFAULT_META_INFO.iSOSpeedRatings);
 
   return {
     cameraMaker,
-    cameraModel
+    cameraModel,
+    exposureTime,
+    fNumber,
+    iSOSpeedRatings
   };
 };
