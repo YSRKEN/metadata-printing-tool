@@ -3,27 +3,43 @@ import { Form } from "react-bootstrap";
 import { ApplicationContext } from "service/state";
 
 const OptionForm: React.FC = () => {
-  const { textPosition, textColor, dispatch } = useContext(ApplicationContext);
+  const {
+    textPosition,
+    textColor,
+    cameraMaker,
+    cameraModel,
+    dispatch
+  } = useContext(ApplicationContext);
 
   // テキストの表示位置を変更する
   const onChangeTextPosition = (e: FormEvent<any>) => {
-    dispatch({type: 'setTextPosition', message: e.currentTarget.value});
+    dispatch({ type: 'setTextPosition', message: e.currentTarget.value });
   };
 
   // テキストの表示色を変更する
   const onChangeTextColor = (e: FormEvent<any>) => {
-    dispatch({type: 'setTextColor', message: e.currentTarget.value});
+    dispatch({ type: 'setTextColor', message: e.currentTarget.value });
+  };
+
+  // カメラメーカーを変更する
+  const onChangeCameraMaker = (e: FormEvent<any>) => {
+    dispatch({ type: 'setCameraMaker', message: e.currentTarget.value });
+  };
+
+  // カメラの機種名を変更する
+  const onChangeCameraModel = (e: FormEvent<any>) => {
+    dispatch({ type: 'setCameraModel', message: e.currentTarget.value });
   };
 
   return (
     <Form>
       <Form.Group>
         <Form.Label htmlFor="maker">メーカー</Form.Label>
-        <Form.Control id="maker" />
+        <Form.Control id="maker" value={cameraMaker} onChange={onChangeCameraMaker} />
       </Form.Group>
       <Form.Group>
         <Form.Label htmlFor="model">モデル名</Form.Label>
-        <Form.Control id="model" />
+        <Form.Control id="model" value={cameraModel} onChange={onChangeCameraModel} />
       </Form.Group>
       <Form.Group>
         <Form.Label htmlFor="lens_name">レンズ名</Form.Label>

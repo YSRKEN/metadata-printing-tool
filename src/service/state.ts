@@ -1,11 +1,14 @@
-import { useState, createContext } from "react";
+import { useState, createContext, useEffect } from "react";
+import { getMetaInfo } from "./exif";
 
 // Actionの種類
 type ActionType = 'setTextPosition'
   | 'setTextColor'
   | 'setImageSource'
   | 'setLoadingTrue'
-  | 'setLoadingFalse';
+  | 'setLoadingFalse'
+  | 'setCameraMaker'
+  | 'setCameraModel';
 
 // テキストの表示位置
 type TextPosition = 'lb' | 'rb' | 'rt' | 'lt';
@@ -25,6 +28,8 @@ interface ApplicationState {
   textColor: TextColor;       // テキストの表示色
   imageSource: string;        // 表示される画像データ
   loadingFlg: boolean;        // 読み込み中ならtrue
+  cameraMaker: string;        // カメラメーカー
+  cameraModel: string;        // カメラの機種名
   dispatch: (action: Action) => void;
 }
 
@@ -34,6 +39,26 @@ export const useApplicationState = (): ApplicationState => {
   const [textColor, setTextColor] = useState<TextColor>('w');
   const [loadingFlg, setLoadingFlg] = useState(false);
   const [imageSource, setImageSource] = useState('');
+  const [cameraMaker, setCameraMaker] = useState('');
+  const [cameraModel, setCameraModel] = useState('');
+
+  // 画像が置き換わる度に、メタ情報を読み込みし直す
+  useEffect(() => {
+    setLoadingFlg(true);
+    // Base64文字列からBinaryStringを作り、そこからUint8Arrayまで変換する
+    const temp = imageSource.split(',');
+    if (temp.length >= 2) {
+      const imageBinary = Uint8Array.from(atob(imageSource.split(',')[1]).split(''), e => e.charCodeAt(0));
+      
+      // Unit8Arrayを解析し、メタ情報を取り出す
+      const metaInfo = getMetaInfo(imageBinary);
+
+      // メタ情報をUI上にセットする
+      setCameraMaker(metaInfo.cameraMaker);
+      setCameraModel(metaInfo.cameraModel);
+    }
+    setLoadingFlg(false);
+  }, [imageSource]);
 
   const dispatch = async (action: Action) => {
     try {
@@ -58,6 +83,14 @@ export const useApplicationState = (): ApplicationState => {
         case 'setLoadingFalse':
           setLoadingFlg(false);
           break;
+        // カメラメーカーを変更する
+        case 'setCameraMaker':
+          setCameraMaker(action.message);
+          break;
+        // カメラメーカーを変更する
+        case 'setCameraModel':
+          setCameraModel(action.message);
+          break;
       }
     } catch (e) {
       const e2: Error = e;
@@ -71,6 +104,8 @@ export const useApplicationState = (): ApplicationState => {
     textColor,
     imageSource,
     loadingFlg,
+    cameraMaker,
+    cameraModel,
     dispatch
   };
 };
