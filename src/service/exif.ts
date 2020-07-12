@@ -82,6 +82,7 @@ const getIfdData = (arr1: Uint8Array, startIndex: number, exifBasePointer: numbe
     const ifdId = getShortValue(arr1.slice(p, p + 2), endian);
     const ifdCount = getIntValue(arr1.slice(p + 4, p + 8), endian);
     const ifdValue = getIntValue(arr1.slice(p + 8, p + 12), endian);
+    console.log(`(${ifdId} ${getShortValue(arr1.slice(p + 2, p + 4), endian)} ${ifdCount} ${ifdValue})`);
     switch (getShortValue(arr1.slice(p + 2, p + 4), endian)) {
       case 1:
         output.push({id: ifdId, type: 'BYTE', value: []});
@@ -93,15 +94,36 @@ const getIfdData = (arr1: Uint8Array, startIndex: number, exifBasePointer: numbe
           output.push({id: ifdId, type: 'ASCII', value: getAsciiValue(arr1, exifBasePointer + ifdValue, ifdCount)});
         }
         break;
-      case 3:
-        output.push({id: ifdId, type: 'SHORT', value: []});
+      case 3: {
+        const startPointer = ifdCount <= 2 ? p + 8 : exifBasePointer + ifdValue;
+        const temp: number[] = [];
+        for (let j = startPointer; j < startPointer + ifdCount * 2; j += 2) {
+          temp.push(getShortValue(arr1.slice(j, j + 2), endian));
+        }
+        output.push({id: ifdId, type: 'SHORT', value: temp});
         break;
-      case 4:
-        output.push({id: ifdId, type: 'LONG', value: []});
+      }
+      case 4: {
+        const startPointer = ifdCount <= 1 ? p + 8 : exifBasePointer + ifdValue;
+        const temp: number[] = [];
+        for (let j = startPointer; j < startPointer + ifdCount * 4; j += 4) {
+          temp.push(getIntValue(arr1.slice(j, j + 4), endian));
+        }
+        output.push({id: ifdId, type: 'LONG', value: temp});
         break;
-      case 5:
-        output.push({id: ifdId, type: 'RATIONAL', value: []});
+      }
+      case 5: {
+        const temp: [number, number][] = [];
+        const startPointer = exifBasePointer + ifdValue;
+        for (let j = startPointer; j < startPointer + ifdCount * 8; j += 8) {
+          temp.push([
+            getIntValue(arr1.slice(j, j + 4), endian),
+            getIntValue(arr1.slice(j + 4, j + 8), endian)
+          ]);
+        }
+        output.push({id: ifdId, type: 'RATIONAL', value: temp});
         break;
+      }
       case 7:
         output.push({id: ifdId, type: 'UNDEFINED', value: []});
         break;
