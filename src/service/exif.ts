@@ -82,10 +82,11 @@ const getIfdData = (arr1: Uint8Array, startIndex: number, exifBasePointer: numbe
     const ifdId = getShortValue(arr1.slice(p, p + 2), endian);
     const ifdCount = getIntValue(arr1.slice(p + 4, p + 8), endian);
     const ifdValue = getIntValue(arr1.slice(p + 8, p + 12), endian);
-    console.log(`(${ifdId} ${getShortValue(arr1.slice(p + 2, p + 4), endian)} ${ifdCount} ${ifdValue})`);
+    // console.log(`(${ifdId} ${getShortValue(arr1.slice(p + 2, p + 4), endian)} ${ifdCount} ${ifdValue})`);
     switch (getShortValue(arr1.slice(p + 2, p + 4), endian)) {
       case 1:
-        output.push({id: ifdId, type: 'BYTE', value: []});
+        const startPointer = ifdCount <= 4 ? p + 8 : exifBasePointer + ifdValue;
+        output.push({id: ifdId, type: 'BYTE', value: arr1.slice(startPointer, startPointer + ifdCount)});
         break;
       case 2:
         if (ifdCount <= 4) {
@@ -124,16 +125,34 @@ const getIfdData = (arr1: Uint8Array, startIndex: number, exifBasePointer: numbe
         output.push({id: ifdId, type: 'RATIONAL', value: temp});
         break;
       }
-      case 7:
-        output.push({id: ifdId, type: 'UNDEFINED', value: []});
+      case 7: {
+        const startPointer = ifdCount <= 4 ? p + 8 : exifBasePointer + ifdValue;
+        output.push({id: ifdId, type: 'UNDEFINED', value: arr1.slice(startPointer, startPointer + ifdCount)});
         break;
-      case 9:
-        output.push({id: ifdId, type: 'SLONG', value: []});
+      }
+      case 9: {
+        const startPointer = ifdCount <= 1 ? p + 8 : exifBasePointer + ifdValue;
+        const temp: number[] = [];
+        for (let j = startPointer; j < startPointer + ifdCount * 4; j += 4) {
+          temp.push(getIntValue(arr1.slice(j, j + 4), endian));
+        }
+        output.push({id: ifdId, type: 'SLONG', value: temp});
         break;
-      case 10:
-        output.push({id: ifdId, type: 'SRATIONAL', value: []});
+      }
+      case 10: {
+        const temp: [number, number][] = [];
+        const startPointer = exifBasePointer + ifdValue;
+        for (let j = startPointer; j < startPointer + ifdCount * 8; j += 8) {
+          temp.push([
+            getIntValue(arr1.slice(j, j + 4), endian),
+            getIntValue(arr1.slice(j + 4, j + 8), endian)
+          ]);
+        }
+        output.push({id: ifdId, type: 'SRATIONAL', value: temp});
         break;
+      }
       default:
+        output.push({id: -1, type: '', value: []});
         break;
     }
   }
@@ -199,11 +218,26 @@ export const getMetaInfo = (imageBinary: Uint8Array): MetaInfo => {
 
   // 0th IFDを読み取る
   const zerothIfdData = getIfdData(imageBinary, filePointer, exifBasePointer, endian);
-  console.log(zerothIfdData);
-  
-  // 0th IFDから、カメラメーカー名とカメラモデル名を抽出する
-  const cameraMakerIfd = zerothIfdData.filter(ifd => ifd.id === 271);
-  const cameraModelIfd = zerothIfdData.filter(ifd => ifd.id === 272);
+  let allIfdData = [...zerothIfdData];
+
+  // 1st IFDを読み取る
+  const temp = filePointer + 2 + 12 * zerothIfdData.length;
+  const firstIfdPointer = getIntValue(imageBinary.slice(temp, temp + 4), endian) + exifBasePointer;
+  const firstIfdData = getIfdData(imageBinary, firstIfdPointer, exifBasePointer, endian);
+  allIfdData = [...allIfdData, ...firstIfdData];
+
+  // Exif IFDを読み取る
+  const exifIfd = zerothIfdData.filter(ifd => ifd.id === 34665);
+  if (exifIfd.length > 0) {
+    const exifIfdPointer = (exifIfd[0].value as number[])[0] + exifBasePointer;
+    const exifIfdData = getIfdData(imageBinary, exifIfdPointer, exifBasePointer, endian);
+    allIfdData = [...allIfdData, ...exifIfdData];
+  }
+
+  // IFDの一覧から、カメラメーカー名とカメラモデル名を抽出する
+  console.log(allIfdData);
+  const cameraMakerIfd = allIfdData.filter(ifd => ifd.id === 271);
+  const cameraModelIfd = allIfdData.filter(ifd => ifd.id === 272);
   const cameraMaker = cameraMakerIfd.length > 0 ? cameraMakerIfd[0].value as string : '';
   const cameraModel = cameraModelIfd.length > 0 ? cameraModelIfd[0].value as string : '';
 

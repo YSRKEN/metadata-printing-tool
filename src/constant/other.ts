@@ -10,4 +10,4 @@ export const DEFAULT_META_INFO: MetaInfo = {
 export type Endian = 'BE' | 'LE';
 
 // タグの種類
-export type IfdType = 'BYTE' | 'ASCII' | 'SHORT' | 'LONG' | 'RATIONAL' | 'UNDEFINED' | 'SLONG' | 'SRATIONAL';
+export type IfdType = 'BYTE' | 'ASCII' | 'SHORT' | 'LONG' | 'RATIONAL' | 'UNDEFINED' | 'SLONG' | 'SRATIONAL' | '';
