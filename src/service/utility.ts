@@ -49,7 +49,6 @@ export const findBinary = (baseData: Uint8Array, patternData: Uint8Array) => {
   for (let i = 0; i < patternData.length; i += 1) {
     table[patternData[i]] = patternData.length - 1 - i;
   }
-  console.log(table);
 
   let i = patternData.length - 1;
   while (i < baseData.length) {

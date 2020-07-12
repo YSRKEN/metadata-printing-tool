@@ -65,7 +65,6 @@ export const useApplicationState = (): ApplicationState => {
 
       // Unit8Arrayを解析し、メタ情報を取り出す
       const metaInfo = getMetaInfo(imageBinary);
-      // console.log(metaInfo);
 
       // メタ情報をUI上にセットする
       setCameraMaker(metaInfo.cameraMaker);

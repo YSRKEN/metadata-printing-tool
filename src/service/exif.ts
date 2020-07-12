@@ -1,6 +1,6 @@
 import { MetaInfo, IFD } from "constant/model";
 import { DEFAULT_META_INFO, Endian, Fraction } from "constant/other";
-import { findBinary } from "./utility";
+import { findBinary } from "service/utility";
 
 /**
  * 配列同士を比較する
@@ -83,7 +83,6 @@ const getIfdData = (arr1: Uint8Array, startIndex: number, exifBasePointer: numbe
     const ifdId = getShortValue(arr1.slice(p, p + 2), endian);
     const ifdCount = getIntValue(arr1.slice(p + 4, p + 8), endian);
     const ifdValue = getIntValue(arr1.slice(p + 8, p + 12), endian);
-    // console.log(`(${ifdId} ${getShortValue(arr1.slice(p + 2, p + 4), endian)} ${ifdCount} ${ifdValue})`);
     switch (getShortValue(arr1.slice(p + 2, p + 4), endian)) {
       case 1:
         const startPointer = ifdCount <= 4 ? p + 8 : exifBasePointer + ifdValue;
@@ -252,7 +251,6 @@ export const getMetaInfo = (imageBinary: Uint8Array): MetaInfo => {
   }
 
   // IFDの一覧から、カメラメーカー名・カメラモデル名・露光時間・F値・ISO感度を抽出する
-  console.log(allIfdData);
   const cameraMaker = findIfd(allIfdData, 271, DEFAULT_META_INFO.cameraMaker);
   const cameraModel = findIfd(allIfdData, 272, DEFAULT_META_INFO.cameraModel);
   let lensName = findIfd(allIfdData, 42036, DEFAULT_META_INFO.lensName);
@@ -263,7 +261,8 @@ export const getMetaInfo = (imageBinary: Uint8Array): MetaInfo => {
   const iSOSpeedRatings = findIfd(allIfdData, 34855, DEFAULT_META_INFO.iSOSpeedRatings);
 
   // これではレンズ名を取得できない場合の処理
-  // ※Canon・SONY・SIGMA・OLYMPUSにはこの処理が不要
+  // ※Canon・FUJIFILM・OLYMPUS・SIGMA・SONYにはこの処理が不要
+  // ※Nikon・Panasonic・PENTAXにはこの処理が必要
   switch (cameraMaker) {
     case 'Panasonic': {
       // メーカーノートを取得
