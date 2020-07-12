@@ -1,5 +1,6 @@
 import { useState, createContext, useEffect } from "react";
-import { getMetaInfo } from "./exif";
+import { getMetaInfo } from "service/exif";
+import { fractionToString } from "service/utility";
 
 // Actionの種類
 type ActionType = 'setTextPosition'
@@ -66,8 +67,8 @@ export const useApplicationState = (): ApplicationState => {
       // メタ情報をUI上にセットする
       setCameraMaker(metaInfo.cameraMaker);
       setCameraModel(metaInfo.cameraModel);
-      setExposureTime(`${metaInfo.exposureTime.numerator}/${metaInfo.exposureTime.denominator}`);
-      setFNumber(`${metaInfo.fNumber.numerator}/${metaInfo.fNumber.denominator}`);
+      setExposureTime(fractionToString(metaInfo.exposureTime, 'exp'));
+      setFNumber(fractionToString(metaInfo.fNumber, 'f'));
       setISOSpeedRatings(`ISO${metaInfo.iSOSpeedRatings}`);
     }
     setLoadingFlg(false);
