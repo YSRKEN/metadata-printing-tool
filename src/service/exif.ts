@@ -48,13 +48,30 @@ const getIntValue = (arr1: Uint8Array, endian: string) => {
 };
 
 /**
+ * 指定した配列について、指定した範囲をASCII型と仮定して読み取る
+ * @param arr1 配列
+ * @param start 開始位置
+ * @param length 長さ
+ * @return 値
+ */
+const getAsciiValue = (arr1: Uint8Array, start: number, length: number) => {
+  let output = '';
+  for (let ci = 0; ci < length; ci += 1) {
+    output += String.fromCharCode(arr1[start + ci]);
+  }
+  output = output.replace(/\0/g, '');
+  return output;
+};
+
+/**
  * IFD形式を読み取り、データを一覧にして返す
  * @param arr1 もとのバイナリデータ
  * @param startIndex IFDデータの開始位置
+ * @param exifBasePointer Exifデータの基準位置
  * @param endian エンディアン
  * 
  */
-const getIfdData = (arr1: Uint8Array, startIndex: number, endian: Endian) => {
+const getIfdData = (arr1: Uint8Array, startIndex: number, exifBasePointer: number, endian: Endian) => {
   // タグの個数を取得
   const ifdCount = getShortValue(arr1.slice(startIndex, startIndex + 2), endian);
 
@@ -70,7 +87,11 @@ const getIfdData = (arr1: Uint8Array, startIndex: number, endian: Endian) => {
         output.push({id: ifdId, type: 'BYTE', value: []});
         break;
       case 2:
-        output.push({id: ifdId, type: 'ASCII', value: ''});
+        if (ifdCount <= 4) {
+          output.push({id: ifdId, type: 'ASCII', value: getAsciiValue(arr1, p + 8, ifdCount)});
+        } else {
+          output.push({id: ifdId, type: 'ASCII', value: getAsciiValue(arr1, exifBasePointer + ifdValue, ifdCount)});
+        }
         break;
       case 3:
         output.push({id: ifdId, type: 'SHORT', value: []});
@@ -136,6 +157,7 @@ export const getMetaInfo = (imageBinary: Uint8Array): MetaInfo => {
     // Exif識別コードが無ければ弾く
     return DEFAULT_META_INFO;
   }
+  const exifBasePointer = filePointer + 10;
   const endianBinary = imageBinary.slice(filePointer + 10, filePointer + 12);
   let endian: Endian = 'LE';
   if (equals(endianBinary, [0x49, 0x49])) {
@@ -154,10 +176,17 @@ export const getMetaInfo = (imageBinary: Uint8Array): MetaInfo => {
   filePointer += zerothIfdPointer + 6 + 2 + 2;  // それぞれExif識別コード・APP1サイズ・APP1マーカーのバイト長
 
   // 0th IFDを読み取る
-  const zerothIfdData = getIfdData(imageBinary, filePointer, endian);
+  const zerothIfdData = getIfdData(imageBinary, filePointer, exifBasePointer, endian);
   console.log(zerothIfdData);
+  
+  // 0th IFDから、カメラメーカー名とカメラモデル名を抽出する
+  const cameraMakerIfd = zerothIfdData.filter(ifd => ifd.id === 271);
+  const cameraModelIfd = zerothIfdData.filter(ifd => ifd.id === 272);
+  const cameraMaker = cameraMakerIfd.length > 0 ? cameraMakerIfd[0].value as string : '';
+  const cameraModel = cameraModelIfd.length > 0 ? cameraModelIfd[0].value as string : '';
+
   return {
-    cameraMaker: 'x',
-    cameraModel: 'y'
+    cameraMaker,
+    cameraModel
   };
 };
