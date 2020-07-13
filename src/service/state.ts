@@ -1,6 +1,7 @@
 import { useState, createContext, useEffect } from "react";
 import { getMetaInfo } from "service/exif";
-import { fractionToString } from "service/utility";
+import { fractionToString, createRenderedImage } from "service/utility";
+import { TextPosition, TextColor } from "constant/other";
 
 // Actionの種類
 type ActionType = 'setTextPosition'
@@ -13,13 +14,8 @@ type ActionType = 'setTextPosition'
   | 'setLensName'
   | 'setExposureTime'
   | 'setFNumber'
-  | 'setISOSpeedRatings';
-
-// テキストの表示位置
-type TextPosition = 'lb' | 'rb' | 'rt' | 'lt';
-
-// テキストの色
-type TextColor = 'w' | 'b';
+  | 'setISOSpeedRatings'
+  | 'refreshRenderedImage';
 
 // Action
 interface Action {
@@ -55,6 +51,29 @@ export const useApplicationState = (): ApplicationState => {
   const [exposureTime, setExposureTime] = useState('');
   const [fNumber, setFNumber] = useState('');
   const [iSOSpeedRatings, setISOSpeedRatings] = useState('');
+  const [loadingActionFlg, setLoadingActionFlg] = useState(false);
+
+  // 再描画用関数
+  const redrawImage = () => {
+    setLoadingFlg(true);
+    createRenderedImage(
+      rawImageSource,
+      cameraMaker,
+      cameraModel,
+      lensName,
+      exposureTime,
+      fNumber,
+      iSOSpeedRatings,
+      textPosition,
+      textColor
+    ).then(data => {
+      setImageSource(data);
+      setLoadingFlg(false);
+    }).catch((e: Error) => {
+      console.error(e);
+      setLoadingFlg(false);
+    });
+  };
 
   // 画像が置き換わる度に、メタ情報を読み込みし直す
   useEffect(() => {
@@ -74,60 +93,20 @@ export const useApplicationState = (): ApplicationState => {
       setExposureTime(fractionToString(metaInfo.exposureTime, 'exp'));
       setFNumber(fractionToString(metaInfo.fNumber, 'f'));
       setISOSpeedRatings(`ISO${metaInfo.iSOSpeedRatings}`);
+
+      // 再描画のための準備
+      setLoadingActionFlg(true);
     }
     setLoadingFlg(false);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rawImageSource]);
 
   // 表示する画像を更新する
   useEffect(() => {
-    if (rawImageSource === '') {
-      return;
-    }
-    setLoadingFlg(true);
-    // 事前にCanvasを用意する
-    const canvas = document.createElement('canvas');
-    const context = canvas.getContext('2d');
-    if (context === null) {
-      return;
-    }
-
-    // DataURL形式の画像を読み取り、Canvasにセットして作業する
-    const image = new Image();
-    image.onload = () => {
-      // 事前の計算
-      const fontSize = image.width > image.height ? image.height / 72 : image.width / 72;
-      const font = `${fontSize}px sans-serif`;
-      const fillStyle = textColor === 'w' ? 'rgb(186,192,178)' : 'rgb(69,63,77)';
-      const insertedText = `${cameraMaker} ${cameraModel}, ${lensName}, ${exposureTime}, ${fNumber}, ${iSOSpeedRatings}`;
-
-      // Canvasに画像を描画
-      canvas.width = image.width;
-      canvas.height = image.height;
-      context.drawImage(image, 0, 0);
-
-      // Canvasに文字を描画
-      context.font = font;
-      context.fillStyle = fillStyle;
-      const rect = context.measureText(insertedText);
-      switch (textPosition) {
-        case 'lb':
-          context.fillText(insertedText, fontSize, image.height - fontSize);
-          break;
-        case 'rb':
-          context.fillText(insertedText, image.width - fontSize - rect.width, image.height - fontSize);
-          break;
-        case 'rt':
-          context.fillText(insertedText, image.width - fontSize - rect.width, fontSize * 2);
-          break;
-        case 'lt':
-          context.fillText(insertedText, fontSize, fontSize * 2);
-          break;
-      }
-      setImageSource(canvas.toDataURL());
-      setLoadingFlg(false);
-    };
-    image.src = rawImageSource;
-  }, [rawImageSource, cameraMaker, cameraModel, lensName, exposureTime, fNumber, iSOSpeedRatings, textPosition, textColor]);
+    redrawImage();
+    setLoadingActionFlg(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [textPosition, textColor, loadingActionFlg]);
 
   const dispatch = async (action: Action) => {
     try {
@@ -175,6 +154,10 @@ export const useApplicationState = (): ApplicationState => {
         // ISO感度を変更する
         case 'setISOSpeedRatings':
           setISOSpeedRatings(action.message);
+          break;
+        // 手動で画像を更新する
+        case 'refreshRenderedImage':
+          redrawImage();
           break;
       }
     } catch (e) {

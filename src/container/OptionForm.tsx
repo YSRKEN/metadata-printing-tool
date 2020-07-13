@@ -1,5 +1,5 @@
 import React, { useContext, FormEvent } from "react";
-import { Form } from "react-bootstrap";
+import { Form, Button } from "react-bootstrap";
 import { ApplicationContext } from "service/state";
 
 const OptionForm: React.FC = () => {
@@ -55,6 +55,11 @@ const OptionForm: React.FC = () => {
     dispatch({ type: 'setISOSpeedRatings', message: e.currentTarget.value });
   };
 
+  // 画像を更新する
+  const onClick = () => {
+    dispatch({type: 'refreshRenderedImage', message: ''});
+  };
+
   return (
     <Form>
       <Form.Group>
@@ -82,7 +87,7 @@ const OptionForm: React.FC = () => {
         <Form.Control id="iso_speed_ratings" value={iSOSpeedRatings} onChange={onChangeISOSpeedRatings} />
       </Form.Group>
       <Form.Group>
-        <Form.Label htmlFor="text_position">表示位置</Form.Label>
+        <Form.Label htmlFor="text_position">表示位置(自動更新)</Form.Label>
         <Form.Control id="text_position" as="select" value={textPosition} onChange={onChangeTextPosition}>
           <option value="lb">左下</option>
           <option value="rb">右下</option>
@@ -91,11 +96,14 @@ const OptionForm: React.FC = () => {
         </Form.Control>
       </Form.Group>
       <Form.Group>
-        <Form.Label htmlFor="text_color">表示色</Form.Label>
+        <Form.Label htmlFor="text_color">表示色(自動更新)</Form.Label>
         <Form.Control id="text_color" as="select" value={textColor} onChange={onChangeTextColor}>
           <option value="w">明るい色</option>
           <option value="b">暗い色</option>
         </Form.Control>
+      </Form.Group>
+      <Form.Group>
+        <Button size="lg" block onClick={onClick}>画像を再描画</Button>
       </Form.Group>
     </Form>
   );

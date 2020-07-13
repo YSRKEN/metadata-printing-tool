@@ -1,4 +1,4 @@
-import { Fraction } from "constant/other";
+import { Fraction, TextColor, TextPosition } from "constant/other";
 
 /**
  * 小数点以下digit位まで丸める
@@ -69,4 +69,79 @@ export const findBinary = (baseData: Uint8Array, patternData: Uint8Array) => {
     i += Math.max(shift1, shift2);
   }
   return -1;
+};
+
+/**
+ * 文字を入れた後の画像を生成する
+ * @param rawImageSource 元の画像
+ * @param cameraMaker カメラメーカー
+ * @param cameraModel カメラ名
+ * @param lensName レンズ名
+ * @param exposureTime 露光時間
+ * @param fNumber F値
+ * @param iSOSpeedRatings ISO感度
+ * @param textPosition 表示位置
+ * @param textColor 表示色
+ * @returns 生成した画像を返すPromise
+ */
+export const createRenderedImage = async (
+  rawImageSource: string,
+  cameraMaker: string,
+  cameraModel: string,
+  lensName: string,
+  exposureTime: string,
+  fNumber: string,
+  iSOSpeedRatings: string,
+  textPosition: TextPosition,
+  textColor: TextColor
+): Promise<string> => {
+  return new Promise((res) => {
+    // 事前チェック
+    if (rawImageSource === '') {
+      res('');
+    }
+
+    // 作業用にCanvasを用意する
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    if (context === null) {
+      res('');
+    } else {
+          // DataURL形式の画像を読み取り、Canvasにセットして作業する
+    const image = new Image();
+    image.onload = () => {
+      // 事前の計算
+      const fontSize = image.width > image.height ? image.height / 72 : image.width / 72;
+      const font = `${fontSize}px sans-serif`;
+      const fillStyle = textColor === 'w' ? 'rgb(186,192,178)' : 'rgb(69,63,77)';
+      const insertedText = `${cameraMaker} ${cameraModel}, ${lensName}, ${exposureTime}, ${fNumber}, ${iSOSpeedRatings}`;
+
+      // Canvasに画像を描画
+      canvas.width = image.width;
+      canvas.height = image.height;
+      context.drawImage(image, 0, 0);
+
+      // Canvasに文字を描画
+      context.font = font;
+      context.fillStyle = fillStyle;
+      const rect = context.measureText(insertedText);
+      switch (textPosition) {
+        case 'lb':
+          context.fillText(insertedText, fontSize, image.height - fontSize);
+          break;
+        case 'rb':
+          context.fillText(insertedText, image.width - fontSize - rect.width, image.height - fontSize);
+          break;
+        case 'rt':
+          context.fillText(insertedText, image.width - fontSize - rect.width, fontSize * 2);
+          break;
+        case 'lt':
+          context.fillText(insertedText, fontSize, fontSize * 2);
+          break;
+      }
+      res(canvas.toDataURL());
+    };
+    image.src = rawImageSource;
+    }
+  });
 };
