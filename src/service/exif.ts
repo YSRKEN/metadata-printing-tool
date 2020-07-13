@@ -1,6 +1,6 @@
 import { MetaInfo, IFD } from "constant/model";
 import { DEFAULT_META_INFO, Endian, Fraction } from "constant/other";
-import { findBinary } from "service/utility";
+import { findBinary, fractionToString } from "service/utility";
 
 /**
  * 配列同士を比較する
@@ -218,7 +218,6 @@ export const getMetaInfo = (imageBinary: Uint8Array): MetaInfo => {
     filePointer += segmentSize + 2;
     break;
   }
-  console.log(filePointer);
 
   // APP1セグメントにExifデータが存在しない場合は弾く
   const segmentSize = getShortValue(imageBinary.slice(filePointer + 2, filePointer + 4), 'BE');
@@ -258,7 +257,6 @@ export const getMetaInfo = (imageBinary: Uint8Array): MetaInfo => {
     const firstIfdPointer = getIntValue(imageBinary.slice(temp, temp + 4), endian) + exifBasePointer;
     const firstIfdData = getIfdData(imageBinary, firstIfdPointer, exifBasePointer, endian);
     allIfdData = [...allIfdData, ...firstIfdData];
-    console.log(firstIfdData);
 
     // Exif IFDを読み取る
     const exifIfd = zerothIfdData.filter(ifd => ifd.id === 34665);
@@ -267,7 +265,6 @@ export const getMetaInfo = (imageBinary: Uint8Array): MetaInfo => {
       const exifIfdData = getIfdData(imageBinary, exifIfdPointer, exifBasePointer, endian);
       allIfdData = [...allIfdData, ...exifIfdData];
     }
-    console.log(allIfdData);
   }
 
   // IFDの一覧から、カメラメーカー名・カメラモデル名・露光時間・F値・ISO感度を抽出する
@@ -320,6 +317,44 @@ export const getMetaInfo = (imageBinary: Uint8Array): MetaInfo => {
       // データを取り出す
       const lensInfo = findIfd(makerNoteIfdData, 0x207, Uint8Array.from([]));
       console.log(lensInfo);
+      break;
+    }
+  } else if (cameraMaker.includes('NIKON')) {
+    while (true) {
+      // メーカーノートを取得
+      const makerNote = findIfd(allIfdData, 37500, Uint8Array.from([]));
+      if (makerNote.length === 0) {
+        break;
+      }
+
+      // メーカーノートを解析
+      const makerNoteStartIndex = findBinary(imageBinary, makerNote);
+      if (makerNoteStartIndex < 0) {
+        break;
+      }
+      if (!equals(makerNote.slice(0, 7), [78, 105, 107, 111, 110, 0, 2])) {
+        break;
+      }
+      if (!equals(makerNote.slice(8, 10), [0, 0])) {
+        break;
+      }
+      const endian2: Endian = equals(makerNote.slice(10, 12), [0x49, 0x49]) ? 'LE' : 'BE';
+      const makerNoteIfdData = getIfdData(imageBinary, makerNoteStartIndex + 18, makerNoteStartIndex + 10, endian2);
+
+      // データを取り出す
+      // ※レンズ名は直接取り出せないので、焦点距離とF値だけ取得している
+      const lensData: Fraction[] = findIfd(makerNoteIfdData, 132, []);
+      if (lensData.length !== 4) {
+        break;
+      }
+      lensName = fractionToString(lensData[0], 'f');
+      if (lensData[0].numerator !== lensData[1].numerator || lensData[0].denominator !== lensData[1].denominator) {
+        lensName += `-${fractionToString(lensData[1], 'f')}`;
+      }
+      lensName += `mm f/${fractionToString(lensData[2], 'f')}`;
+      if (lensData[2].numerator !== lensData[3].numerator || lensData[2].denominator !== lensData[3].denominator) {
+        lensName += `-${fractionToString(lensData[3], 'f')}`;
+      }
       break;
     }
   }
