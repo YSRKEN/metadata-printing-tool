@@ -20,7 +20,7 @@ export interface Fraction {
 export type Endian = 'BE' | 'LE';
 
 // タグの種類
-export type IfdType = 'BYTE' | 'ASCII' | 'SHORT' | 'LONG' | 'RATIONAL' | 'UNDEFINED' | 'SLONG' | 'SRATIONAL' | '';
+export type IfdType = 'BYTE' | 'ASCII' | 'SHORT' | 'LONG' | 'RATIONAL' | 'SBYTE' | 'UNDEFINED' | 'SSHORT' | 'SLONG' | 'SRATIONAL' | '';
 
 // テキストの表示位置
 export type TextPosition = 'lb' | 'rb' | 'rt' | 'lt';
