@@ -15,7 +15,8 @@ type ActionType = 'setTextPosition'
   | 'setExposureTime'
   | 'setFNumber'
   | 'setISOSpeedRatings'
-  | 'refreshRenderedImage';
+  | 'refreshRenderedImage'
+  | 'setJpegModeFlg';
 
 // Action
 interface Action {
@@ -35,6 +36,7 @@ interface ApplicationState {
   exposureTime: string;       // 露光時間
   fNumber: string;            // F値
   iSOSpeedRatings: string;    // ISO感度
+  jpegModeFlg: boolean;       // ここがtrueなら、imageSourceがPNG形式ではなくJPEG形式になる
   dispatch: (action: Action) => void;
 }
 
@@ -52,6 +54,7 @@ export const useApplicationState = (): ApplicationState => {
   const [fNumber, setFNumber] = useState('');
   const [iSOSpeedRatings, setISOSpeedRatings] = useState('');
   const [loadingActionFlg, setLoadingActionFlg] = useState(false);
+  const [jpegModeFlg, setJpegModeFlg] = useState(false);
 
   // 再描画用関数
   const redrawImage = () => {
@@ -159,6 +162,10 @@ export const useApplicationState = (): ApplicationState => {
         case 'refreshRenderedImage':
           redrawImage();
           break;
+        // 保存モードの切替え
+        case'setJpegModeFlg':
+        setJpegModeFlg(!jpegModeFlg);
+        break;
       }
     } catch (e) {
       const e2: Error = e;
@@ -178,6 +185,7 @@ export const useApplicationState = (): ApplicationState => {
     exposureTime,
     fNumber,
     iSOSpeedRatings,
+    jpegModeFlg,
     dispatch
   };
 };
