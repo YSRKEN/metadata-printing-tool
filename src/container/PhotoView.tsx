@@ -42,9 +42,23 @@ const PhotoView: React.FC = () => {
               className="border d-flex justify-content-center flex-column align-items-center h-100"
               onClick={onClickDiv}
             >
-              <strong className="d-block">
-                クリックしてファイルを読み込み
-              </strong>
+              <div>
+                <h3>このアプリの使い方</h3>
+                <ol>
+                  <li><strong>この領域をクリックして画像を読み込みます</strong></li>
+                  <li>すると、Exif情報が解析され、画面右の入力欄が自動で埋まります</li>
+                  <li>また、画面右の入力欄は手動でも修正可能です</li>
+                  <li>修正後は「画像を再描画」ボタンを押すと、内容が画像表示部分に反映されます</li>
+                  <li>表示位置・表示色については、変更すると即座に画面が書き換わります</li>
+                  <li><strong>画像表示部分を右クリックして、画像を保存してください</strong></li>
+                </ol>
+                <h3>注意点</h3>
+                <ul>
+                  <li>PENTAXの場合は、レンズ名が自動補完されません</li>
+                  <li>Nikonの場合は、レンズ名が「焦点距離 f/開放絞り値」と簡易的な補完になります</li>
+                  <li>その他、データによっては自動補完が働かないことがあります。ご了承ください</li>
+                </ul>
+              </div>
             </div>
           )
           : (
