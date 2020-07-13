@@ -312,7 +312,14 @@ export const getMetaInfo = (imageBinary: Uint8Array): MetaInfo => {
       if (makerNoteStartIndex < 0) {
         break;
       }
-      const makerNoteIfdData = getIfdData(imageBinary, makerNoteStartIndex + 6, exifBasePointer, endian);
+      let makerNoteIfdData: IFD[] = [];
+      if (equals(makerNote.slice(0, 3), [65, 79, 67])) {
+        // メーカーノートの先頭が「eyg」の場合
+        makerNoteIfdData = getIfdData(imageBinary, makerNoteStartIndex + 6, exifBasePointer, endian);
+      } else if (equals(makerNote.slice(0, 5), [82, 73, 67, 79, 72])) {
+        // メーカーノートの先頭が「Rsgyr」の場合
+        makerNoteIfdData = getIfdData(imageBinary, makerNoteStartIndex + 8, exifBasePointer, endian);
+      }
 
       // データを取り出す
       const lensInfo = findIfd(makerNoteIfdData, 0x207, Uint8Array.from([]));
