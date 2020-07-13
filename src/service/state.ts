@@ -48,6 +48,7 @@ export const useApplicationState = (): ApplicationState => {
   const [textColor, setTextColor] = useState<TextColor>('w');
   const [loadingFlg, setLoadingFlg] = useState(false);
   const [imageSource, setImageSource] = useState('');
+  const [rawImageSource, setRawImageSource] = useState('');
   const [cameraMaker, setCameraMaker] = useState('');
   const [cameraModel, setCameraModel] = useState('');
   const [lensName, setLensName] = useState('');
@@ -59,9 +60,9 @@ export const useApplicationState = (): ApplicationState => {
   useEffect(() => {
     setLoadingFlg(true);
     // Base64文字列からBinaryStringを作り、そこからUint8Arrayまで変換する
-    const temp = imageSource.split(',');
+    const temp = rawImageSource.split(',');
     if (temp.length >= 2) {
-      const imageBinary = Uint8Array.from(atob(imageSource.split(',')[1]).split(''), e => e.charCodeAt(0));
+      const imageBinary = Uint8Array.from(atob(temp[1]).split(''), e => e.charCodeAt(0));
 
       // Unit8Arrayを解析し、メタ情報を取り出す
       const metaInfo = getMetaInfo(imageBinary);
@@ -75,7 +76,58 @@ export const useApplicationState = (): ApplicationState => {
       setISOSpeedRatings(`ISO${metaInfo.iSOSpeedRatings}`);
     }
     setLoadingFlg(false);
-  }, [imageSource]);
+  }, [rawImageSource]);
+
+  // 表示する画像を更新する
+  useEffect(() => {
+    if (rawImageSource === '') {
+      return;
+    }
+    setLoadingFlg(true);
+    // 事前にCanvasを用意する
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    if (context === null) {
+      return;
+    }
+
+    // DataURL形式の画像を読み取り、Canvasにセットして作業する
+    const image = new Image();
+    image.onload = () => {
+      // 事前の計算
+      const fontSize = image.width > image.height ? image.height / 72 : image.width / 72;
+      const font = `${fontSize}px sans-serif`;
+      const fillStyle = textColor === 'w' ? 'rgb(186,192,178)' : 'rgb(69,63,77)';
+      const insertedText = `${cameraMaker} ${cameraModel}, ${lensName}, ${exposureTime}, ${fNumber}, ${iSOSpeedRatings}`;
+
+      // Canvasに画像を描画
+      canvas.width = image.width;
+      canvas.height = image.height;
+      context.drawImage(image, 0, 0);
+
+      // Canvasに文字を描画
+      context.font = font;
+      context.fillStyle = fillStyle;
+      const rect = context.measureText(insertedText);
+      switch (textPosition) {
+        case 'lb':
+          context.fillText(insertedText, fontSize, image.height - fontSize);
+          break;
+        case 'rb':
+          context.fillText(insertedText, image.width - fontSize - rect.width, image.height - fontSize);
+          break;
+        case 'rt':
+          context.fillText(insertedText, image.width - fontSize - rect.width, fontSize * 2);
+          break;
+        case 'lt':
+          context.fillText(insertedText, fontSize, fontSize * 2);
+          break;
+      }
+      setImageSource(canvas.toDataURL());
+      setLoadingFlg(false);
+    };
+    image.src = rawImageSource;
+  }, [rawImageSource, cameraMaker, cameraModel, lensName, exposureTime, fNumber, iSOSpeedRatings, textPosition, textColor]);
 
   const dispatch = async (action: Action) => {
     try {
@@ -90,7 +142,7 @@ export const useApplicationState = (): ApplicationState => {
           break;
         // 画像データをセットする
         case 'setImageSource':
-          setImageSource(action.message);
+          setRawImageSource(action.message);
           break;
         // 読み込み中かどうかを切り替える
         case 'setLoadingTrue':
