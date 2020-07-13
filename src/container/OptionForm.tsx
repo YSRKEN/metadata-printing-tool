@@ -12,6 +12,7 @@ const OptionForm: React.FC = () => {
     exposureTime,
     fNumber,
     iSOSpeedRatings,
+    jpegModeFlg,
     dispatch
   } = useContext(ApplicationContext);
 
@@ -57,7 +58,12 @@ const OptionForm: React.FC = () => {
 
   // 画像を更新する
   const onClick = () => {
-    dispatch({type: 'refreshRenderedImage', message: ''});
+    dispatch({ type: 'refreshRenderedImage', message: '' });
+  };
+
+  // JPEGモードの切り替え
+  const onChangeJpegModeFlg = () => {
+    dispatch({ type: 'setJpegModeFlg', message: '' });
   };
 
   return (
@@ -93,6 +99,7 @@ const OptionForm: React.FC = () => {
           <option value="rb">右下</option>
           <option value="rt">右上</option>
           <option value="lt">左上</option>
+          <option value="None">非表示</option>
         </Form.Control>
       </Form.Group>
       <Form.Group>
@@ -101,6 +108,9 @@ const OptionForm: React.FC = () => {
           <option value="w">明るい色</option>
           <option value="b">暗い色</option>
         </Form.Control>
+      </Form.Group>
+      <Form.Group>
+        <Form.Check label="ツイッター投稿用に変換" id="jpeg_mode_flg" checked={jpegModeFlg} onChange={onChangeJpegModeFlg} />
       </Form.Group>
       <Form.Group>
         <Button size="lg" block onClick={onClick}>画像を再描画</Button>

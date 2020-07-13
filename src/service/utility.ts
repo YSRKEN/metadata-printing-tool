@@ -1,4 +1,4 @@
-import { Fraction, TextColor, TextPosition } from "constant/other";
+import { Fraction, TextColor, TextPosition, MAX_JPEG_SIZE } from "constant/other";
 
 /**
  * 小数点以下digit位まで丸める
@@ -82,6 +82,7 @@ export const findBinary = (baseData: Uint8Array, patternData: Uint8Array) => {
  * @param iSOSpeedRatings ISO感度
  * @param textPosition 表示位置
  * @param textColor 表示色
+ * @param jpegModeFlg Twitter投稿用に変換する場合はtrue
  * @returns 生成した画像を返すPromise
  */
 export const createRenderedImage = async (
@@ -93,7 +94,8 @@ export const createRenderedImage = async (
   fNumber: string,
   iSOSpeedRatings: string,
   textPosition: TextPosition,
-  textColor: TextColor
+  textColor: TextColor,
+  jpegModeFlg: boolean
 ): Promise<string> => {
   return new Promise((res) => {
     // 事前チェック
@@ -110,16 +112,29 @@ export const createRenderedImage = async (
           // DataURL形式の画像を読み取り、Canvasにセットして作業する
     const image = new Image();
     image.onload = () => {
-      // 事前の計算
-      const fontSize = image.width > image.height ? image.height / 72 : image.width / 72;
+      // 画像をにリサイズして貼り付ける
+      canvas.width = image.width;
+      canvas.height = image.height;
+      if (jpegModeFlg) {
+        if (image.width > image.height) {
+          if (image.width > MAX_JPEG_SIZE) {
+            canvas.width = MAX_JPEG_SIZE;
+            canvas.height = Math.round(image.height * MAX_JPEG_SIZE / image.width);
+          }
+        } else {
+          if (image.height > MAX_JPEG_SIZE) {
+            canvas.width = Math.round(image.width * MAX_JPEG_SIZE / image.height);
+            canvas.height = MAX_JPEG_SIZE;
+          }
+        }
+      }
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+      // 文字を描画する前に必要な計算
+      const fontSize = canvas.width > canvas.height ? canvas.height / 72 : canvas.width / 72;
       const font = `${fontSize}px sans-serif`;
       const fillStyle = textColor === 'w' ? 'rgb(186,192,178)' : 'rgb(69,63,77)';
       const insertedText = `${cameraMaker} ${cameraModel}, ${lensName}, ${exposureTime}, ${fNumber}, ${iSOSpeedRatings}`;
-
-      // Canvasに画像を描画
-      canvas.width = image.width;
-      canvas.height = image.height;
-      context.drawImage(image, 0, 0);
 
       // Canvasに文字を描画
       context.font = font;
@@ -127,19 +142,41 @@ export const createRenderedImage = async (
       const rect = context.measureText(insertedText);
       switch (textPosition) {
         case 'lb':
-          context.fillText(insertedText, fontSize, image.height - fontSize);
+          context.fillText(insertedText, fontSize, canvas.height - fontSize);
           break;
         case 'rb':
-          context.fillText(insertedText, image.width - fontSize - rect.width, image.height - fontSize);
+          context.fillText(insertedText, canvas.width - fontSize - rect.width, canvas.height - fontSize);
           break;
         case 'rt':
-          context.fillText(insertedText, image.width - fontSize - rect.width, fontSize * 2);
+          context.fillText(insertedText, canvas.width - fontSize - rect.width, fontSize * 2);
           break;
         case 'lt':
           context.fillText(insertedText, fontSize, fontSize * 2);
           break;
+        default:
+          break;
       }
-      res(canvas.toDataURL());
+
+      // CanvasをDataURLとして保存
+      if (!jpegModeFlg) {
+        // PNGとして保存
+        res(canvas.toDataURL('image/png'));
+      } else {
+        let flg = false;
+        for (let i = 100; i >= 0; i -= 1) {
+          const newImageData = canvas.toDataURL('image/jpeg', 1.0 * i / 100);
+          const newImageBinary = atob(newImageData.split(',')[1]);
+          console.log(`品質値：${i} ファイルサイズ：${newImageBinary.length}バイト`);
+          if (newImageBinary.length < 5 * 1000 * 1000 && newImageBinary.length < canvas.width * canvas.height) {
+            flg = true;
+            res(newImageData);
+            break;
+          }
+        }
+        if (!flg) {
+          res(canvas.toDataURL('image/jpeg', 0.0));
+        }
+      }
     };
     image.src = rawImageSource;
     }
