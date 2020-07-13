@@ -68,7 +68,8 @@ export const useApplicationState = (): ApplicationState => {
       fNumber,
       iSOSpeedRatings,
       textPosition,
-      textColor
+      textColor,
+      jpegModeFlg
     ).then(data => {
       setImageSource(data);
       setLoadingFlg(false);
@@ -109,7 +110,7 @@ export const useApplicationState = (): ApplicationState => {
     redrawImage();
     setLoadingActionFlg(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [textPosition, textColor, loadingActionFlg]);
+  }, [textPosition, textColor, loadingActionFlg, jpegModeFlg]);
 
   const dispatch = async (action: Action) => {
     try {

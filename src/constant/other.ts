@@ -27,3 +27,6 @@ export type TextPosition = 'lb' | 'rb' | 'rt' | 'lt';
 
 // テキストの色
 export type TextColor = 'w' | 'b';
+
+// Twitterに貼り付ける際の最大サイズ
+export const MAX_JPEG_SIZE = 4096;
