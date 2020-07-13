@@ -99,6 +99,7 @@ const OptionForm: React.FC = () => {
           <option value="rb">右下</option>
           <option value="rt">右上</option>
           <option value="lt">左上</option>
+          <option value="None">非表示</option>
         </Form.Control>
       </Form.Group>
       <Form.Group>

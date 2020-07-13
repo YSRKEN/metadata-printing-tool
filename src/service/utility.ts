@@ -153,6 +153,8 @@ export const createRenderedImage = async (
         case 'lt':
           context.fillText(insertedText, fontSize, fontSize * 2);
           break;
+        default:
+          break;
       }
 
       // CanvasをDataURLとして保存

@@ -23,7 +23,7 @@ export type Endian = 'BE' | 'LE';
 export type IfdType = 'BYTE' | 'ASCII' | 'SHORT' | 'LONG' | 'RATIONAL' | 'SBYTE' | 'UNDEFINED' | 'SSHORT' | 'SLONG' | 'SRATIONAL' | '';
 
 // テキストの表示位置
-export type TextPosition = 'lb' | 'rb' | 'rt' | 'lt';
+export type TextPosition = 'lb' | 'rb' | 'rt' | 'lt' | 'None';
 
 // テキストの色
 export type TextColor = 'w' | 'b';
