@@ -268,9 +268,9 @@ export const getMetaInfo = (imageBinary: Uint8Array): MetaInfo => {
   }
 
   // IFDの一覧から、カメラメーカー名・カメラモデル名・露光時間・F値・ISO感度を抽出する
-  const cameraMaker = findIfd(allIfdData, 271, DEFAULT_META_INFO.cameraMaker);
-  const cameraModel = findIfd(allIfdData, 272, DEFAULT_META_INFO.cameraModel);
-  let lensName = findIfd(allIfdData, 42036, DEFAULT_META_INFO.lensName);
+  const cameraMaker = findIfd(allIfdData, 271, DEFAULT_META_INFO.cameraMaker).trim();
+  const cameraModel = findIfd(allIfdData, 272, DEFAULT_META_INFO.cameraModel).trim();
+  let lensName = findIfd(allIfdData, 42036, DEFAULT_META_INFO.lensName).trim();
   const exposureTimeTemp = findIfd(allIfdData, 33434, []);
   const exposureTime = exposureTimeTemp.length > 0 ? exposureTimeTemp[0] : DEFAULT_META_INFO.exposureTime;
   const fNumberTemp = findIfd(allIfdData, 33437, []);
@@ -296,7 +296,7 @@ export const getMetaInfo = (imageBinary: Uint8Array): MetaInfo => {
       const makerNoteIfdData = getIfdData(imageBinary, makerNoteStartIndex + 12, exifBasePointer, endian);
 
       // データを取り出す
-      lensName = findIfd(makerNoteIfdData, 0x51, DEFAULT_META_INFO.lensName);
+      lensName = findIfd(makerNoteIfdData, 0x51, DEFAULT_META_INFO.lensName).trim();
       break;
     }
   } else if (cameraMaker.includes('RICOH')) {
