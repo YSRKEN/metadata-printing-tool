@@ -95,7 +95,7 @@ export const useApplicationState = (): ApplicationState => {
       setCameraModel(metaInfo.cameraModel);
       setLensName(metaInfo.lensName);
       setExposureTime(fractionToString(metaInfo.exposureTime, 'exp'));
-      setFNumber(fractionToString(metaInfo.fNumber, 'f'));
+      setFNumber(`F${fractionToString(metaInfo.fNumber, 'f')}`);
       setISOSpeedRatings(`ISO${metaInfo.iSOSpeedRatings}`);
 
       // 再描画のための準備
