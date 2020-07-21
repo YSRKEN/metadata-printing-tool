@@ -12,6 +12,7 @@ const OptionForm: React.FC = () => {
     exposureTime,
     fNumber,
     iSOSpeedRatings,
+    userName,
     jpegModeFlg,
     dispatch
   } = useContext(ApplicationContext);
@@ -56,6 +57,11 @@ const OptionForm: React.FC = () => {
     dispatch({ type: 'setISOSpeedRatings', message: e.currentTarget.value });
   };
 
+  // 撮影者名を変更する
+  const onChangeUserName = (e: FormEvent<any>) => {
+    dispatch({ type: 'setUserName', message: e.currentTarget.value });
+  };
+
   // 画像を更新する
   const onClick = () => {
     dispatch({ type: 'refreshRenderedImage', message: '' });
@@ -91,6 +97,10 @@ const OptionForm: React.FC = () => {
       <Form.Group>
         <Form.Label htmlFor="iso_speed_ratings">ISO感度</Form.Label>
         <Form.Control id="iso_speed_ratings" value={iSOSpeedRatings} onChange={onChangeISOSpeedRatings} />
+      </Form.Group>
+      <Form.Group>
+        <Form.Label htmlFor="user_name">撮影者名</Form.Label>
+        <Form.Control id="user_name" value={userName} onChange={onChangeUserName} />
       </Form.Group>
       <Form.Group>
         <Form.Label htmlFor="text_position">表示位置(自動更新)</Form.Label>
