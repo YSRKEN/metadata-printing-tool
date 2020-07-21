@@ -1,6 +1,6 @@
 import { useState, createContext, useEffect } from "react";
 import { getMetaInfo } from "service/exif";
-import { fractionToString, createRenderedImage } from "service/utility";
+import { fractionToString, createRenderedImage, loadSetting, saveSetting } from "service/utility";
 import { TextPosition, TextColor } from "constant/other";
 
 // Actionの種類
@@ -15,6 +15,7 @@ type ActionType = 'setTextPosition'
   | 'setExposureTime'
   | 'setFNumber'
   | 'setISOSpeedRatings'
+  | 'setUserName'
   | 'refreshRenderedImage'
   | 'setJpegModeFlg';
 
@@ -37,6 +38,7 @@ interface ApplicationState {
   fNumber: string;            // F値
   iSOSpeedRatings: string;    // ISO感度
   jpegModeFlg: boolean;       // ここがtrueなら、imageSourceがPNG形式ではなくJPEG形式になる
+  userName: string;           // 撮影者名(Photo by XXXと印字される)
   dispatch: (action: Action) => void;
 }
 
@@ -55,6 +57,7 @@ export const useApplicationState = (): ApplicationState => {
   const [iSOSpeedRatings, setISOSpeedRatings] = useState('');
   const [loadingActionFlg, setLoadingActionFlg] = useState(false);
   const [jpegModeFlg, setJpegModeFlg] = useState(false);
+  const [userName, setUserName] = useState(loadSetting('userName', ''));
 
   // 再描画用関数
   const redrawImage = () => {
@@ -67,6 +70,7 @@ export const useApplicationState = (): ApplicationState => {
       exposureTime,
       fNumber,
       iSOSpeedRatings,
+      userName,
       textPosition,
       textColor,
       jpegModeFlg
@@ -111,6 +115,9 @@ export const useApplicationState = (): ApplicationState => {
     setLoadingActionFlg(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [textPosition, textColor, loadingActionFlg, jpegModeFlg]);
+
+  // 撮影者名は記憶する
+  useEffect(() => saveSetting('userName', userName), [userName]);
 
   const dispatch = async (action: Action) => {
     try {
@@ -159,6 +166,10 @@ export const useApplicationState = (): ApplicationState => {
         case 'setISOSpeedRatings':
           setISOSpeedRatings(action.message);
           break;
+        // 名前を変更する
+        case 'setUserName':
+          setUserName(action.message);
+          break;
         // 手動で画像を更新する
         case 'refreshRenderedImage':
           redrawImage();
@@ -187,6 +198,7 @@ export const useApplicationState = (): ApplicationState => {
     fNumber,
     iSOSpeedRatings,
     jpegModeFlg,
+    userName,
     dispatch
   };
 };

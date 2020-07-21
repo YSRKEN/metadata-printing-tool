@@ -93,6 +93,7 @@ export const createRenderedImage = async (
   exposureTime: string,
   fNumber: string,
   iSOSpeedRatings: string,
+  userName: string,
   textPosition: TextPosition,
   textColor: TextColor,
   jpegModeFlg: boolean
@@ -134,7 +135,10 @@ export const createRenderedImage = async (
       const fontSize = canvas.width > canvas.height ? canvas.height / 72 : canvas.width / 72;
       const font = `${fontSize}px sans-serif`;
       const fillStyle = textColor === 'w' ? 'rgb(186,192,178)' : 'rgb(69,63,77)';
-      const insertedText = `${cameraMaker} ${cameraModel}, ${lensName}, ${exposureTime}, ${fNumber}, ${iSOSpeedRatings}`;
+      let insertedText = `${cameraMaker} ${cameraModel}, ${lensName}, ${exposureTime}, ${fNumber}, ${iSOSpeedRatings}`;
+      if (userName !== '') {
+        insertedText += ', Photo by ' + userName;
+      }
 
       // Canvasに文字を描画
       context.font = font;
@@ -181,4 +185,13 @@ export const createRenderedImage = async (
     image.src = rawImageSource;
     }
   });
+};
+
+export const loadSetting = (key: string, defaultValue: string) => {
+  const temp = window.localStorage.getItem(key);
+  return temp !== null ? temp : defaultValue;
+};
+
+export const saveSetting = (key: string, value: string) => {
+  window.localStorage.setItem(key, value);
 };
